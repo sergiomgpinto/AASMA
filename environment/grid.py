@@ -73,6 +73,7 @@ class Position:
 
 class Cell(enum.Enum):
     """Represents each cell of the grid."""
+    UNKOWN = -1  # Represents the houses in the project proposal figure.
     OBSTACLE = 0  # Represents the houses in the project proposal figure.
     FERTILE_LAND = 1
     OAK_TREE = 2

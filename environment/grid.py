@@ -4,6 +4,8 @@ from typing import List
 
 import numpy as np
 
+from typing import List, Optional
+
 
 @dataclasses.dataclass(frozen=True)
 class Position:
@@ -117,6 +119,14 @@ class Map:
         """Returns all the positions in the map where the drone can be."""
         return self.all_positions
 
+    @property
+    def possible_station_positions(self) -> List[Position]:
+        return [
+            p 
+            for p in self.all_positions 
+            if self.is_fertile(p) # the station will appear in 1 of the fertile land squares
+        ]
+
     def is_obstacle(self, p: Position) -> bool:
         """Returns True if the position is an obstacle, False otherwise."""
         return self.grid[p.y, p.x] == Cell.OBSTACLE
@@ -145,11 +155,30 @@ class Map:
         """Returns True if the position is a charging station, False otherwise."""
         return self.grid[p.y, p.x] == Cell.CHARGING_STATION
 
-    # TODO: Understand if we need this.
-    """    
+
     @property
     def is_inside_map(self, p: Position) -> bool:
         return 0 <= p.y < self.height and 0 <= p.x < self.width
-    """
+
+    def adj_positions(self, p: Position) -> List[Position]:
+        positions = [adj for adj in p.adj if self.is_inside_map(adj)]
+        return positions
+
+    def has_adj_of_type(self, p: Position, cell_type: Optional[Cell]) -> bool:
+        positions = self.adj_positions(p, cell_type)
+        if cell_type == Cell.FERTILE_LAND:
+            return any(self.is_fertile(adj) for adj in positions)
+        elif cell_type == Cell.OAK_TREE:
+            return any(self.is_oak_tree(adj) for adj in positions)
+        elif cell_type == Cell.PINE_TREE:
+            return any(self.is_pine_tree(adj) for adj in positions)
+        elif cell_type == Cell.EUCALYPTUS_TREE:
+            return any(self.is_eucalyptus(adj) for adj in positions)
+        elif cell_type == Cell.OBSTACLE:
+            return any(self.is_obstacle(adj) for adj in positions)
+        else:
+            raise ValueError(f"Unknown cell type: {cell_type}")
+        
+    
 
     # TODO: What more behaviour do we need?

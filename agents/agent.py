@@ -1,6 +1,6 @@
 import abc
-import drone #entity
-import chargingstation #entity
+import drone 
+import chargingstation
 from environment import env
 from environment import grid
 import numpy as np

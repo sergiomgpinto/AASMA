@@ -2,7 +2,7 @@ import abc
 import dataclasses
 import enum
 import grid
-import entity
+from agents import agent
 import log
 import numpy as np
 
@@ -21,7 +21,7 @@ class Observation:
     """
 
     map: grid.Map
-    drones: List[entity.Drone]
+    drones: List[agent.Drone]
 
 
 

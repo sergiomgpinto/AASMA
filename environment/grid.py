@@ -75,12 +75,12 @@ class Position:
 
 class Cell(enum.Enum):
     """Represents each cell of the grid."""
-    OBSTACLE = 0  # Represents the houses in the project proposal figure.
-    FERTILE_LAND = 1
-    OAK_TREE = 2
-    PINE_TREE = 3
-    EUCALYPTUS_TREE = 4
-    CHARGING_STATION = 5  # We assume a single charging station by now. Position is also fixed.
+    FERTILE_LAND = 0
+    OAK_TREE = 1
+    PINE_TREE = 2
+    EUCALYPTUS_TREE = 3
+    CHARGING_STATION = 4  # We assume a single charging station by now. Position is also fixed.
+    OBSTACLE = 5  # Represents the houses in the project proposal figure.
 
     # Did not include a cell yet for the drone since it can be anywhere in the grid. May reconsider.
 
@@ -178,7 +178,53 @@ class Map:
             return any(self.is_obstacle(adj) for adj in positions)
         else:
             raise ValueError(f"Unknown cell type: {cell_type}")
-        
     
 
     # TODO: What more behaviour do we need?
+    def plantable_squares(self) -> List[Position]:
+        """
+        Looks at the grid and returns fertile land squares that have not yet
+        been planted. 
+        
+        """
+        positions = self.all_positions(self)
+        plantable_positions = [p for p in positions if self.is_fertile_land(p)]
+        return plantable_positions
+    
+    def find_charging_station(self) -> Position:
+        """
+        Looks at the grid and returns the position of the charging station
+            
+        """
+        positions = self.all_positions(self)
+        for p in positions:
+            if self.is_charging_station(p):
+                return p
+            
+        return None
+    
+    def choose_adj_fertile_land(self, p: Position):
+        """
+        Looks for the closest fertile cell and decides which seed to plant
+        Args:
+            p (Position): Drone Position in the grid
+
+        Returns:
+            Pos: Returns the position of the closest fertile land. 
+                       If there's none return null.
+        """
+        # FIXME: Add a shuffle
+        fertile_land_nearby = self.adj_positions(p, Cell.FERTILE)
+        for fertile_land in fertile_land_nearby:
+            return fertile_land 
+               
+        return None
+
+
+    def choose_seed(self, p: Position) -> Cell:
+        if self.has_adj_of_type(p,Cell.OAK_TREE):
+            return Cell.OAK_TREE
+        if self.has_adj_of_type(p,Cell.PINE_TREE):
+            return Cell.PINE_TREE
+        if self.has_adj_of_type(p,Cell.EUCALYPTUS_TREE):
+            return Cell.EUCALYPTUS_TREE

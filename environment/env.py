@@ -24,6 +24,7 @@ class Observation:
     drones: List[entity.Drone]
 
 
+
 class Action(enum.Enum):
     """Specifies possible actions the drones can perform."""
 
@@ -54,7 +55,6 @@ class Action(enum.Enum):
 class Environment:
 
     drones: List[entity.Drone]
-    # final_passengers: List[List[int]] necessário ter final list of plantable squares???
 
     def __init__(
         self,
@@ -99,37 +99,33 @@ class Environment:
         for drone, act in zip(self.drones, actions):
             if act in (Action.UP, Action.DOWN, Action.LEFT, Action.RIGHT):
                 self._move_drone(drone, act)
+                drone.batery_available -= 1
                 drone.total_distance += 1
 
             elif act == Action.PLANT:
-                drone.pickup_up(self.passengers, self.map)
+                drone.plant(self.map)
+            
             elif act == Action.CHARGE:
-                drone.drop_off(self.map)
+                drone.charge(self.map)
+            
             elif act == Action.STAY:
                 # Do nothing
                 pass
+            
             else:
                 raise ValueError(f"Unknown action: {act}")            
-            log.taxi(self._logger,self._timestep, taxi)
+            log.drone(self._logger,self._timestep, drone)
 
+        observation = Observation(map=self.map, drones=self.drones)
 
-        for passenger in self.passengers:
-            log.passenger(self._logger, self._timestep, passenger)
-            
-            if passenger.in_trip == entity.TripState.WAITING:
-                passenger.pick_up_time += 1
-            elif passenger.in_trip == entity.TripState.INTRIP:
-                passenger.travel_time += 1
-
-        self._delete_passengers()
-        observation = Observation(map=self.map, taxis=self.taxis, passengers=self.passengers)
-
-        self.terminal = len(self.passengers) == 0 or self._timestep == self._max_timesteps
-        # In the end, add the passengers that are not yet delivered to the list of final passengers
+        self.terminal = len(self.map.plantable_squares()) == 0 or self._timestep == self._max_timesteps
+        
+        '''
+        # In the end, add the squares that are not yet planted to the list of final passengers
         # for metrics.
         if self.terminal:
             self.final_passengers += [[p.pick_up_time, p.travel_time] for p in self.passengers]
-
+        '''
         return [observation for _ in range(len(actions))], self.terminal
             
     def render(self):
@@ -171,20 +167,20 @@ class Environment:
         ]
     
         if len(possible_drone_locations) == 0:
-            raise ValueError("Unable to create taxi: Not enough free locations.")
+            raise ValueError("Unable to create drone: Not enough free locations.")
         loc = self._rng.choice(possible_drone_locations)
-        possible_taxi_directions = [
+        possible_drone_directions = [
             entity.Direction.UP, 
             entity.Direction.DOWN, 
             entity.Direction.LEFT, 
             entity.Direction.RIGHT,
         ]
-        direction = self._rng.choice(possible_taxi_directions)
-        taxi = entity.Taxi(loc=loc, direction=direction, id=id)
-        log.create_taxi(self._logger, self._timestep, taxi)
-        return taxi
+        direction = self._rng.choice(possible_drone_directions)
+        drone = entity.Drone(loc=loc, direction=direction, id=id)
+        log.create_drone(self._logger, self._timestep, drone)
+        return drone
 
-    def _move_drone(self, taxi: entity.Drone, action: Action):
+    def _move_drone(self, drone: entity.Drone, action: Action):
         """Move a drone according to an action."""
         if action == Action.UP:
             target_loc = drone.loc.up
@@ -199,56 +195,11 @@ class Environment:
             target_loc = drone.loc.left
             target_dir = entity.Direction.LEFT
         else:
-            raise ValueError(f"Unknown direction in taxi movement {self.direction}")
+            raise ValueError(f"Unknown direction in drone movement {self.direction}")
         
         drone.loc = target_loc
         drone.direction = target_dir
 
-    '''
-    def _create_passenger(self, id: int):
-        """Creates a passenger with random Pick-Up and Drop-Off locations.
-        
-        Both the passenger locations will not overlap with other passsenger
-        locations.
-        """
-
-        occupied_locations = set()
-        for p in self.passengers:
-            occupied_locations.add(p.pick_up)
-            occupied_locations.add(p.drop_off)
-
-        possible_passenger_locations = [
-            p 
-            for p in self.map.possible_passenger_positions 
-            if p not in occupied_locations
-        ]
-
-        
-        if len(possible_passenger_locations) < 2:
-            raise ValueError("Unable to create passenger: Not enough free locations.")
-        pick_up_loc = self._rng.choice(possible_passenger_locations)
-        possible_passenger_locations.remove(pick_up_loc)
-        drop_off_loc = self._rng.choice(possible_passenger_locations)
-        passenger = entity.Passenger(pick_up=pick_up_loc, drop_off=drop_off_loc, id=id)
-        log.create_passenger(self._logger, self._timestep, passenger)
-        return passenger
-
-
-    def _delete_passengers(self):
-        """
-        Evaluates which passengers are in the corresponding drop-off locations.
-        Deletes these passengers after one time-step.
-        """
-
-        self.passengers = [self.passengers[i] for i in self.passengers_travelling]
-
-        self.passengers_travelling = []
-        for i in range(len(self.passengers)):
-            if self.passengers[i].pick_up != self.passengers[i].drop_off:
-                self.passengers_travelling.append(i)
-            else:
-                self.final_passengers += [[self.passengers[i].pick_up_time, self.passengers[i].travel_time]]
-    '''
 
 class Printer(abc.ABC):
     @abc.abstractmethod

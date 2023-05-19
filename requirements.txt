@@ -1,5 +1,6 @@
-numpy
 ma-gym
-pygame
 matplotlib
 scipy
+
+numpy==1.22.3
+pygame==2.1.2

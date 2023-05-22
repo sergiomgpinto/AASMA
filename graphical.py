@@ -1,8 +1,9 @@
 import abc
 import colour
 import default
-from agents import agent
-from environment import env, grid
+import agent
+import env
+import grid
 import numpy as np
 import pygame
 

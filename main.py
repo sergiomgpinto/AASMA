@@ -1,6 +1,8 @@
-from agents import agent
-from environment import env, grid
-from visualize import default, graphical
+import agent
+import env
+import grid
+import default
+import graphical
 
 import numpy as np
 import pygame

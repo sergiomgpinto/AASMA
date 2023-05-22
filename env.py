@@ -2,7 +2,7 @@ import abc
 import dataclasses
 import enum
 import grid
-from agents import agent
+import agent
 import log
 import numpy as np
 
@@ -54,7 +54,7 @@ class Action(enum.Enum):
 
 class Environment:
 
-    drones: List[entity.Drone]
+    drones: List[agent.Drone]
 
     def __init__(
         self,
@@ -151,7 +151,7 @@ class Environment:
         self.passengers_travelling = [i for i in range(len(self.passengers))] 
         '''
 
-    def _create_drone(self, id: int) -> entity.Drone:
+    def _create_drone(self, id: int) -> agent.Drone:
         """Creates a drone with a random location and direction.
         
         The drone initial location will not overlap with another drone."""
@@ -170,30 +170,30 @@ class Environment:
             raise ValueError("Unable to create drone: Not enough free locations.")
         loc = self._rng.choice(possible_drone_locations)
         possible_drone_directions = [
-            entity.Direction.UP, 
-            entity.Direction.DOWN, 
-            entity.Direction.LEFT, 
-            entity.Direction.RIGHT,
+            agent.Direction.UP, 
+            agent.Direction.DOWN, 
+            agent.Direction.LEFT, 
+            agent.Direction.RIGHT,
         ]
         direction = self._rng.choice(possible_drone_directions)
-        drone = entity.Drone(loc=loc, direction=direction, id=id)
+        drone = agent.Drone(loc=loc, direction=direction, id=id)
         log.create_drone(self._logger, self._timestep, drone)
         return drone
 
-    def _move_drone(self, drone: entity.Drone, action: Action):
+    def _move_drone(self, drone: agent.Drone, action: Action):
         """Move a drone according to an action."""
         if action == Action.UP:
             target_loc = drone.loc.up
-            target_dir = entity.Direction.UP
+            target_dir = agent.Direction.UP
         elif action == Action.DOWN:
             target_loc = drone.loc.down
-            target_dir = entity.Direction.DOWN
+            target_dir = agent.Direction.DOWN
         elif action == Action.RIGHT:
             target_loc = drone.loc.right
-            target_dir = entity.Direction.RIGHT
+            target_dir = agent.Direction.RIGHT
         elif action == Action.LEFT:
             target_loc = drone.loc.left
-            target_dir = entity.Direction.LEFT
+            target_dir = agent.Direction.LEFT
         else:
             raise ValueError(f"Unknown direction in drone movement {self.direction}")
         

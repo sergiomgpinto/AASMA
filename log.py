@@ -1,5 +1,5 @@
 import env
-from agents import agent
+import agent
 import logging
 
 logging.basicConfig(format="t = %(timestep)s \t %(levelname)s \t %(name)s \t %(message)s")

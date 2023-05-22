@@ -1,4 +1,4 @@
-from environment import grid
+import grid
 import numpy as np
 
 MAP = np.array([

@@ -1,12 +1,13 @@
-from agents.agent import Agent
+import dataclasses
+import grid
 
-class ChargingStation(Agent):
 
-    #TODO potencialmente interessante aumentar a capacidade -> métrica?
-    def __init__(self, pos, capacity = 1): 
-        self.pos = pos
-        self.capacity = capacity
-        self.nr_charging_drones = 0
+@dataclasses.dataclass
+class ChargingStation:
+
+    loc: grid.Position 
+    capacity: int = 1
+    nr_charging_drones: int = 0 
 
     def get_charging_station_pos(self):
         return self.pos

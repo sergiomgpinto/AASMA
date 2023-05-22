@@ -1,10 +1,10 @@
 import dataclasses
 import enum
-from environment import grid
+import grid
 import chargingstation
 from typing import List
 
-
+from dataclasses import dataclass, field
 
 class Direction(enum.Enum):
     UP = 0
@@ -33,8 +33,9 @@ class Drone:
     # Id for agent identification
     id: int = 0  
 
-    nr_seeds: List[int] = [0,0,0] # number of seeds [OAK_TREE,PINE_TREE,EUCALYPTUS] that the drone is currently transporting 
-    seed_maxcapacity: List[int] = [100,100,100]
+    nr_seeds: list = field(default_factory=lambda: [0,0,0])
+    #nr_seeds: List[int] = [0,0,0] # number of seeds [OAK_TREE,PINE_TREE,EUCALYPTUS] that the drone is currently transporting 
+    seed_maxcapacity: list = field(default_factory=lambda: [100,100,100])
     batery_available: int = 0
     batery_maxcapacity: int = 100
     goal: Goal      

@@ -1,8 +1,8 @@
 import abc
 import drone 
 import chargingstation
-from environment import env
-from environment import grid
+import env
+import grid
 import numpy as np
 
 from typing import List

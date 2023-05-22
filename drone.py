@@ -38,7 +38,8 @@ class Drone:
     seed_maxcapacity: list = field(default_factory=lambda: [100,100,100])
     batery_available: int = 0
     batery_maxcapacity: int = 100
-    goal: Goal      
+    goal: Goal = Goal.CHARGE #iniciam todos com o objetivo de carregar     
+
 
     # Drone Metrics
     total_distance: int = 0

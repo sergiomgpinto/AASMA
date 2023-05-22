@@ -12,12 +12,9 @@ MAP = np.array([
     
 ])
 
-MAP = np.where(MAP == 0, grid.Cell.FERTILE_LAND, grid.Cell.OAK_TREE, 
-               grid.Cell.PINE_TREE, grid.Cell.EUCALYPTUS_TREE, grid.Cell.CHARGING_STATION, grid.Cell.OBSTACLE)
-
-'''FERTILE_LAND = 0
-    OAK_TREE = 1
-    PINE_TREE = 2
-    EUCALYPTUS_TREE = 3
-    CHARGING_STATION = 4 
-    OBSTACLE = 5 '''
+MAP = np.where(MAP == 0, grid.Cell.FERTILE_LAND, MAP)
+MAP = np.where(MAP == 1, grid.Cell.OAK_TREE, MAP)
+MAP = np.where(MAP == 2, grid.Cell.PINE_TREE, MAP)
+MAP = np.where(MAP == 3, grid.Cell.EUCALYPTUS_TREE, MAP)
+MAP = np.where(MAP == 4, grid.Cell.CHARGING_STATION, MAP)
+MAP = np.where(MAP == 5, grid.Cell.OBSTACLE, MAP)

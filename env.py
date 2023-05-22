@@ -5,6 +5,8 @@ import grid
 import agent
 import log
 import numpy as np
+import drone as Drone
+
 
 from typing import List, Optional
 
@@ -21,7 +23,7 @@ class Observation:
     """
 
     map: grid.Map
-    drones: List[agent.Drone]
+    drones: List[Drone.Drone]
 
 
 
@@ -54,7 +56,7 @@ class Action(enum.Enum):
 
 class Environment:
 
-    drones: List[agent.Drone]
+    drones: List[Drone.Drone]
 
     def __init__(
         self,
@@ -151,7 +153,7 @@ class Environment:
         self.passengers_travelling = [i for i in range(len(self.passengers))] 
         '''
 
-    def _create_drone(self, id: int) -> agent.Drone:
+    def _create_drone(self, id: int) -> Drone.Drone:
         """Creates a drone with a random location and direction.
         
         The drone initial location will not overlap with another drone."""
@@ -180,7 +182,7 @@ class Environment:
         log.create_drone(self._logger, self._timestep, drone)
         return drone
 
-    def _move_drone(self, drone: agent.Drone, action: Action):
+    def _move_drone(self, drone: Drone.Drone, action: Action):
         """Move a drone according to an action."""
         if action == Action.UP:
             target_loc = drone.loc.up

@@ -1,11 +1,11 @@
 import abc
-import colour
 import default
 import agent
-import env
+import env as env
 import grid
 import numpy as np
 import pygame
+import drone as Drone
 
 
 
@@ -81,6 +81,7 @@ class EnvironmentPrinter(env.Printer):
 
         pygame.display.flip()
 
+    '''
     def _add_colour_to_planted_squares(self, env.map: env.Map):
         planted_trees_location = {p.drop_off for p in passengers}
         mark_for_colour = []
@@ -89,7 +90,7 @@ class EnvironmentPrinter(env.Printer):
                 mark_for_colour.append(loc)
         for loc in mark_for_colour:
             del self._tree_colours[loc]
-
+    '''
 
     def __enter__(self):
         pygame.init()
@@ -166,13 +167,13 @@ class DronePrinter(BasePrinter):
         screen: pygame.Surface,
         cell_width: int,
         cell_height: int,
-        pick_colour_fn: Callable[[agent.Drone], colour.Colour],
+        pick_colour_fn: Callable[[Drone.Drone], colour.Colour],
     ):
         super().__init__(screen=screen, cell_width=cell_width, cell_height=cell_height)
         self._pick_fn = pick_colour_fn
 
 
-    def print(self, drone: agent.Drone):
+    def print(self, drone: Drone.Drone):
 
         drone = pygame.transform.scale(pygame.image.load("Images/drone.png"), (0.8*self._cell_width, 0.8*self._cell_height))
 

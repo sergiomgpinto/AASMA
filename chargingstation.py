@@ -18,6 +18,7 @@ class ChargingStation:
     def get_pos(self):
         return self.pos
 
+    @property
     def has_enough_capacity(self):
         if self.nr_charging_drones < self.capacity:
             return True

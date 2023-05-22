@@ -1,6 +1,6 @@
 import dataclasses
 import enum
-import grid
+import grid as grid
 import chargingstation as chargingstation
 from dataclasses import field
 
@@ -45,19 +45,19 @@ class Drone:
 
     # total_energy: int = 0, se para cada quadrado percorrido gastamos 1 de energia n precisamos disto
 
-    def charge(self, chargingStation: chargingstation.ChargingStation):
+    def charge(self): # , chargingStation: chargingstation.ChargingStation
         """
         Charges batery. Will only have effect if drone is positioned in charging station and if the charging station 
         isn't full.
         """
-        if (self.map.is_charging_station(self.loc)):
-            if chargingStation.has_enough_capacity():
-                if self.batery_available < self.batery_maxcapacity:
-                    self.batery_available = self.batery_maxcapacity
-                    self.nr_seeds = self.seed_maxcapacity
-                    self.goal = Goal.PLANT
-            else:
-                self.goal = Goal.WAIT
+        if (self.map.find_charging_station() == self.loc):
+            #if chargingStation.has_enough_capacity:
+            #if self.batery_available < self.batery_maxcapacity:
+            self.batery_available = self.batery_maxcapacity
+            self.nr_seeds = self.seed_maxcapacity
+            self.goal = Goal.PLANT
+            #else:
+                #self.goal = Goal.WAIT
 
         return None
 
@@ -81,9 +81,9 @@ class Drone:
 
         # Pensar o que é que tem de vir para aqui ??
         # acho que o objetivo é só atualizar os argumentos pq a logica tá no agent 
-        if ( self.loc == Cell.FERTILE_LAND )
+        if ( self.loc == grid.Cell.FERTILE_LAND ):
             # menos uma seed
             nr_seeds[0] -= 1
-        else 
+        else:
             pass
         return None

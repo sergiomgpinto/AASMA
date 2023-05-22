@@ -109,7 +109,7 @@ class Environment:
                 drone.plant()
             
             elif act == Action.CHARGE:
-                drone.charge(self.map)
+                drone.charge()
             
             elif act == Action.STAY:
                 # Do nothing

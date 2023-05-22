@@ -5,6 +5,7 @@ import grid
 import log
 import numpy as np
 import drone as drone
+import chargingstation as chargingstation
 
 
 from typing import List, Optional
@@ -56,6 +57,7 @@ class Action(enum.Enum):
 class Environment:
 
     drones: List[drone.Drone]
+    charging_station: chargingstation.ChargingStation
 
     def __init__(
         self,
@@ -104,7 +106,7 @@ class Environment:
                 drone.total_distance += 1
 
             elif act == Action.PLANT:
-                drone.plant(self.map)
+                drone.plant()
             
             elif act == Action.CHARGE:
                 drone.charge(self.map)
@@ -185,16 +187,16 @@ class Environment:
         """Move a drone according to an action."""
         if action == Action.UP:
             target_loc = drone.loc.up
-            target_dir = drone.Direction.UP
+            target_dir = drone.direction.UP
         elif action == Action.DOWN:
             target_loc = drone.loc.down
-            target_dir = drone.Direction.DOWN
+            target_dir = drone.direction.DOWN
         elif action == Action.RIGHT:
             target_loc = drone.loc.right
-            target_dir = drone.Direction.RIGHT
+            target_dir = drone.direction.RIGHT
         elif action == Action.LEFT:
             target_loc = drone.loc.left
-            target_dir = drone.Direction.LEFT
+            target_dir = drone.direction.LEFT
         else:
             raise ValueError(f"Unknown direction in drone movement {self.direction}")
         

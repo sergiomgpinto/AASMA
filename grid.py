@@ -119,6 +119,7 @@ class Map:
         """Returns all the positions in the map where the drone can be."""
         return self.all_positions
 
+    '''
     @property
     def possible_station_positions(self) -> List[Position]:
         return [
@@ -126,6 +127,7 @@ class Map:
             for p in self.all_positions 
             if self.is_fertile(p) # the station will appear in 1 of the fertile land squares
         ]
+    '''
 
     def is_obstacle(self, p: Position) -> bool:
         """Returns True if the position is an obstacle, False otherwise."""
@@ -153,19 +155,35 @@ class Map:
 
     def is_charging_station(self, p: Position) -> bool:
         """Returns True if the position is a charging station, False otherwise."""
+        print(self.grid[p.y, p.x])
         return self.grid[p.y, p.x] == Cell.CHARGING_STATION
 
 
-    @property
+    #@property
     def is_inside_map(self, p: Position) -> bool:
         return 0 <= p.y < self.height and 0 <= p.x < self.width
 
     def adj_positions(self, p: Position) -> List[Position]:
-        positions = [adj for adj in p.adj if self.is_inside_map(adj)]
+        positions = [adj for adj in p.adj if self.is_inside_map(adj)] #aqui devia ser is_inside_map(adj) mas dava erro entao substitui por p 
         return positions
+    
+    def adj_pos_of_type(self, p: Position, cell_type: Optional[Cell]) -> List[Position]:
+        positions = self.adj_positions(p)
+        if cell_type == Cell.FERTILE_LAND:
+            positions = [adj for adj in positions if self.is_fertile_land(adj)]
+        elif cell_type == Cell.OAK_TREE:
+            positions = [adj for adj in positions if self.is_oak_tree(adj)]
+        elif cell_type == Cell.PINE_TREE:
+            positions = [adj for adj in positions if self.is_pine_tree(adj)]
+        elif cell_type == Cell.EUCALYPTUS_TREE:
+            positions = [adj for adj in positions if self.is_eucalyptus_tree(adj)]
+        elif cell_type == Cell.OBSTACLE:
+            positions = [adj for adj in positions if self.is_obstacle(adj)]
+        else:
+            raise ValueError(f"Unknown cell type: {cell_type}")
 
     def has_adj_of_type(self, p: Position, cell_type: Optional[Cell]) -> bool:
-        positions = self.adj_positions(p, cell_type)
+        positions = self.adj_positions(p)
         if cell_type == Cell.FERTILE_LAND:
             return any(self.is_fertile(adj) for adj in positions)
         elif cell_type == Cell.OAK_TREE:
@@ -173,7 +191,7 @@ class Map:
         elif cell_type == Cell.PINE_TREE:
             return any(self.is_pine_tree(adj) for adj in positions)
         elif cell_type == Cell.EUCALYPTUS_TREE:
-            return any(self.is_eucalyptus(adj) for adj in positions)
+            return any(self.is_eucalyptus_tree(adj) for adj in positions)
         elif cell_type == Cell.OBSTACLE:
             return any(self.is_obstacle(adj) for adj in positions)
         else:
@@ -187,8 +205,7 @@ class Map:
         been planted. 
         
         """
-        positions = self.all_positions(self)
-        plantable_positions = [p for p in positions if self.is_fertile_land(p)]
+        plantable_positions = [p for p in self.all_positions if self.is_fertile_land(p)]
         return plantable_positions
     
     def find_charging_station(self) -> Position:
@@ -196,8 +213,7 @@ class Map:
         Looks at the grid and returns the position of the charging station
             
         """
-        positions = self.all_positions(self)
-        for p in positions:
+        for p in self.all_positions:
             if self.is_charging_station(p):
                 return p
             
@@ -214,17 +230,18 @@ class Map:
                        If there's none return null.
         """
         # FIXME: Add a shuffle
-        fertile_land_nearby = self.adj_positions(p, Cell.FERTILE)
+        fertile_land_nearby = self.adj_positions(p)
+
         for fertile_land in fertile_land_nearby:
             return fertile_land 
                
         return None
 
-
-    def choose_seed(self, p: Position) -> Cell:
+    # retorna os índices correspondentes ao inventário de seeds dos agentes drones
+    def choose_seed(self, p: Position) -> int:
         if self.has_adj_of_type(p,Cell.OAK_TREE):
-            return Cell.OAK_TREE
-        if self.has_adj_of_type(p,Cell.PINE_TREE):
-            return Cell.PINE_TREE
-        if self.has_adj_of_type(p,Cell.EUCALYPTUS_TREE):
-            return Cell.EUCALYPTUS_TREE
+            return 0
+        elif self.has_adj_of_type(p,Cell.PINE_TREE):
+            return 1
+        elif self.has_adj_of_type(p,Cell.EUCALYPTUS_TREE):
+            return 2

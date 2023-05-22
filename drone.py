@@ -1,7 +1,7 @@
 import dataclasses
 import enum
 import grid
-import chargingstation
+import chargingstation as chargingstation
 from dataclasses import field
 
 
@@ -33,7 +33,7 @@ class Drone:
     # Id for agent identification
     id: int = 0
 
-    nr_seeds: list = field(default_factory=lambda: [0, 0, 0])
+    nr_seeds: list = field(default_factory=lambda: [100, 100, 100])
     # nr_seeds: List[int] = [0,0,0] # number of seeds [OAK_TREE,PINE_TREE,EUCALYPTUS] that the drone is currently transporting
     seed_maxcapacity: list = field(default_factory=lambda: [100, 100, 100])
     batery_available: int = 0
@@ -45,12 +45,12 @@ class Drone:
 
     # total_energy: int = 0, se para cada quadrado percorrido gastamos 1 de energia n precisamos disto
 
-    def charge(self, chargingStation: chargingstation):
+    def charge(self, chargingStation: chargingstation.ChargingStation):
         """
         Charges batery. Will only have effect if drone is positioned in charging station and if the charging station 
         isn't full.
         """
-        if (self.map.is_charging_station(self.map, self.loc)):
+        if (self.map.is_charging_station(self.loc)):
             if chargingStation.has_enough_capacity():
                 if self.batery_available < self.batery_maxcapacity:
                     self.batery_available = self.batery_maxcapacity
@@ -63,11 +63,13 @@ class Drone:
 
     def plant(self):
         """
-        Drone plants fertile land nearby
+        Drone plants fertile land where he is located.
         """
-        chosen_seed = self.map.choose_seed(self.loc)
-
-        if self.nr_seeds[chosen_seed] != 0:
+        '''
+        closest_fertile_land = self.map.choose_adj_fertile_land(self.loc)
+        chosen_seed = self.map.choose_seed(closest_fertile_land)
+        print("SEEDS",self.nr_seeds[int(chosen_seed)])
+        if self.nr_seeds[int(chosen_seed)] != 0:
 
             plant = self.map.choose_adj_fertile_land(self.loc)
 
@@ -75,5 +77,13 @@ class Drone:
         else:
             # TODO: Communication Sergio, se o drone não tiver a seed necessária
             pass
+        '''
 
+        # Pensar o que é que tem de vir para aqui ??
+        # acho que o objetivo é só atualizar os argumentos pq a logica tá no agent 
+        if ( self.loc == Cell.FERTILE_LAND )
+            # menos uma seed
+            nr_seeds[0] -= 1
+        else 
+            pass
         return None

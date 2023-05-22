@@ -175,7 +175,7 @@ class DronePrinter(BasePrinter):
 
     def print(self, d: drone.Drone):
 
-        drone_icon = pygame.transform.scale(pygame.image.load("Images/drone.png"),
+        drone_icon = pygame.transform.scale(pygame.image.load("Images/Drone.png"),
                                             (0.8 * self._cell_width, 0.8 * self._cell_height))
 
         left = d.loc.x * self._cell_width + 0.1 * self._cell_width
@@ -183,25 +183,25 @@ class DronePrinter(BasePrinter):
 
         # Por agora a nossa imagem é simétrica mas se metermos um drone com frente e trás isto pode ser util 
         # por isso é que deixei aqui 
-        if d.direction == drone.Drone.Direction.UP:
+        if d.direction == drone.Direction.UP:
             drone_sprite = pygame.transform.rotate(drone_icon, 0)
 
-        elif d.direction == agent.Direction.DOWN:
+        elif d.direction == drone.Direction.DOWN:
             drone_sprite = pygame.transform.rotate(drone_icon, -180)
 
-        elif d.direction == agent.Direction.LEFT:
+        elif d.direction == drone.Direction.LEFT:
             drone_sprite = pygame.transform.rotate(drone_icon, 90)
 
-        elif d.direction == agent.Direction.RIGHT:
+        elif d.direction == drone.Direction.RIGHT:
             drone_sprite = pygame.transform.rotate(drone_icon, -90)
 
-        if d.has_passenger is not None:
+        #if d.has_passenger is not None:
             # taxi_center = self.get_cell_center(taxi.loc)
             # px_side = self.get_px_side()
-            x, y = self.get_upper_left(d.loc)
+            #x, y = self.get_upper_left(d.loc)
 
-            drone_rect = pygame.Rect(x, y, self._cell_width, self._cell_height)
-            pygame.draw.rect(self._screen, drone_rect)
+            #drone_rect = pygame.Rect(x, y, self._cell_width, self._cell_height)
+            #pygame.draw.rect(self._screen, drone_rect)
 
             # taxi_rect1 = pygame.Rect(taxi_center[0] - (2 * px_side), taxi_center[1] + px_side, 4 * px_side, 4 * px_side)
             # taxi_rect2 = taxi_rect1.copy().inflate(2 * px_side, -2 * px_side)

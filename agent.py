@@ -131,8 +131,12 @@ class PathPlanner(PathBased):
 
     def act(self) -> env.Action:
         agent_drone = self._last_observation.drones[self._agent_id]
+        
+        # Conditions in which the drone needs to go to charging station ???
+        # deviamos adicionar uma função reutilizavel para isto 
+        if agent_drone.nr_seeds.count(0) == 3 or len(self._bfs_with_positions(agent_drone.map,agent_drone.loc,agent_drone.map.
+        find_charging_station(agent_drone.map))) == agent_drone.batery_available :
 
-        if agent_drone.nr_seeds.count(0) == 3 or agent_drone.batery_available == 0:
             return self._go_to_charging_station(agent_drone)
         else:
             return self._plant_nearest_square(agent_drone)

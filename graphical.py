@@ -1,35 +1,32 @@
 import abc
-import default
 import agent
 import env as env
 import grid
 import numpy as np
 import pygame
-import drone as Drone
+import drone as drone
+from typing import Tuple
 
-
-
-from typing import Callable, List, Optional, Tuple
 
 class EnvironmentPrinter(env.Printer):
 
     def __init__(
-        self,
-        grid: np.array
+            self,
+            grid: np.array
     ):
         # Mapping between the passenger Drop-Off location
         # and its colour.
-        #self._tree_colours = {}
+        # self._tree_colours = {}
         self.grid = grid
-        #self._colour_picker = colour.Picker()
+        # self._colour_picker = colour.Picker()
 
     def print(self, env: env.Environment):
         env_grid = env.map.grid
         n_cols, n_rows = env_grid.shape
-        
+
         assert self.__height % n_cols == 0, "display height is not divisible by number of columns in grid"
         assert self.__width % n_rows == 0, "display width is not divisible by number of rows in grid"
-        
+
         cell_height = self.__height // n_cols
         cell_width = self.__width // n_rows
 
@@ -74,7 +71,6 @@ class EnvironmentPrinter(env.Printer):
             screen=self.__screen,
             cell_width=cell_width,
             cell_height=cell_height,
-            #pick_colour_fn=self._pick_passenger_colour
         )
         for d in env.drones:
             drone_printer.print(d)
@@ -95,7 +91,8 @@ class EnvironmentPrinter(env.Printer):
     def __enter__(self):
         pygame.init()
         n_cells = self.grid.shape[0] * self.grid.shape[1]
-        self.__width = self.__height = ((min(pygame.display.Info().current_w, pygame.display.Info().current_h) * 0.8) // n_cells) * n_cells
+        self.__width = self.__height = ((min(pygame.display.Info().current_w,
+                                             pygame.display.Info().current_h) * 0.8) // n_cells) * n_cells
         self.__screen = pygame.display.set_mode((self.__width, self.__height))
         return self
 
@@ -133,75 +130,78 @@ class CellPrinter(abc.ABC, BasePrinter):
         """Draws a rectangle of a given colour for the given position."""
         left = pos.x * self._cell_width
         top = pos.y * self._cell_height
-        #Change function colour name
-        self._screen.blit(self.colour(), (left,top))
-        
+        # Change function colour name
+        self._screen.blit(self.colour(), (left, top))
+
 
 class FertileLandPrinter(CellPrinter):
     def colour(self):
         return pygame.transform.scale(pygame.image.load("Images/Fertile.png"), (self._cell_width, self._cell_height))
 
+
 class OakTreePrinter(CellPrinter):
     def colour(self):
         return pygame.transform.scale(pygame.image.load("Images/Oak.png"), (self._cell_width, self._cell_height))
+
 
 class PineTreePrinter(CellPrinter):
     def colour(self):
         return pygame.transform.scale(pygame.image.load("Images/Pine.png"), (self._cell_width, self._cell_height))
 
+
 class EucalyptusTreePrinter(CellPrinter):
     def colour(self):
         return pygame.transform.scale(pygame.image.load("Images/Eucalyptus.png"), (self._cell_width, self._cell_height))
+
 
 class ChargingStationPrinter(CellPrinter):
     def colour(self):
         return pygame.transform.scale(pygame.image.load("Images/Station.png"), (self._cell_width, self._cell_height))
 
+
 class ObstaclePrinter(CellPrinter):
     def colour(self):
         return pygame.transform.scale(pygame.image.load("Images/Obstacle.png"), (self._cell_width, self._cell_height))
 
+
 class DronePrinter(BasePrinter):
     def __init__(
-        self,
-        screen: pygame.Surface,
-        cell_width: int,
-        cell_height: int,
-        pick_colour_fn: Callable[[Drone.Drone], colour.Colour],
+            self,
+            screen: pygame.Surface,
+            cell_width: int,
+            cell_height: int,
     ):
         super().__init__(screen=screen, cell_width=cell_width, cell_height=cell_height)
-        self._pick_fn = pick_colour_fn
 
+    def print(self, d: drone.Drone):
 
-    def print(self, drone: Drone.Drone):
+        drone_icon = pygame.transform.scale(pygame.image.load("Images/drone.png"),
+                                            (0.8 * self._cell_width, 0.8 * self._cell_height))
 
-        drone = pygame.transform.scale(pygame.image.load("Images/drone.png"), (0.8*self._cell_width, 0.8*self._cell_height))
-
-        left = drone.loc.x * self._cell_width + 0.1 * self._cell_width
-        top = drone.loc.y * self._cell_height + 0.1 * self._cell_height
+        left = d.loc.x * self._cell_width + 0.1 * self._cell_width
+        top = d.loc.y * self._cell_height + 0.1 * self._cell_height
 
         # Por agora a nossa imagem é simétrica mas se metermos um drone com frente e trás isto pode ser util 
         # por isso é que deixei aqui 
-        if drone.direction == agent.Direction.UP:
-            drone_sprite = pygame.transform.rotate(drone, 0)
-            
-        elif drone.direction == agent.Direction.DOWN:
-            drone_sprite = pygame.transform.rotate(drone, -180)
-            
-        elif drone.direction == agent.Direction.LEFT:
-            drone_sprite = pygame.transform.rotate(drone, 90)
-            
-        elif drone.direction == agent.Direction.RIGHT:
-            drone_sprite = pygame.transform.rotate(drone, -90)
+        if d.direction == drone.Drone.Direction.UP:
+            drone_sprite = pygame.transform.rotate(drone_icon, 0)
 
-        if drone.has_passenger is not None:
-            draw_colour = self._pick_fn(drone.has_passenger)
+        elif d.direction == agent.Direction.DOWN:
+            drone_sprite = pygame.transform.rotate(drone_icon, -180)
+
+        elif d.direction == agent.Direction.LEFT:
+            drone_sprite = pygame.transform.rotate(drone_icon, 90)
+
+        elif d.direction == agent.Direction.RIGHT:
+            drone_sprite = pygame.transform.rotate(drone_icon, -90)
+
+        if d.has_passenger is not None:
             # taxi_center = self.get_cell_center(taxi.loc)
             # px_side = self.get_px_side()
-            x, y = self.get_upper_left(drone.loc)
+            x, y = self.get_upper_left(d.loc)
 
             drone_rect = pygame.Rect(x, y, self._cell_width, self._cell_height)
-            pygame.draw.rect(self._screen, draw_colour, drone_rect)
+            pygame.draw.rect(self._screen, drone_rect)
 
             # taxi_rect1 = pygame.Rect(taxi_center[0] - (2 * px_side), taxi_center[1] + px_side, 4 * px_side, 4 * px_side)
             # taxi_rect2 = taxi_rect1.copy().inflate(2 * px_side, -2 * px_side)
@@ -212,53 +212,18 @@ class DronePrinter(BasePrinter):
 
         self._screen.blit(drone_sprite, (left, top))
 
-        #taxi_center = self.get_cell_center(taxi.loc)
-        #draw_text(self._screen, f"{taxi.id}", taxi_center, (0, 0, 0), 18, bold=True)
-
-class PassengerPrinter(BasePrinter):
-    def __init__(
-        self, 
-        screen: pygame.Surface, 
-        cell_width: int, 
-        cell_height: int, 
-        pick_colour_fn: Callable[[agent.Passenger], colour.Colour],
-    ):
-        super().__init__(screen=screen, cell_width=cell_width, cell_height=cell_height)
-        self._pick_fn = pick_colour_fn
-
-    def print(self, passenger: entity.Passenger):
-        # draw_radius = 0.9 * (min(self._cell_height, self._cell_width) // 2)
-        draw_colour = self._pick_fn(passenger)
-        pick_up_center = self.get_cell_center(passenger.pick_up)
-        px_side = self.get_px_side()
-
-        if passenger.in_trip in [entity.TripState.WAITING, entity.TripState.FINISHED]:
-            pick_up_rect1 = pygame.Rect(pick_up_center[0] - (3 * px_side), pick_up_center[1] - (3 * px_side),
-                                        6 * px_side, 6 * px_side)
-            pick_up_rect2 = pick_up_rect1.copy().inflate(2 * px_side, -2 * px_side)
-            pick_up_rect3 = pick_up_rect1.copy().inflate(-2 * px_side, 2 * px_side)
-            pygame.draw.rect(self._screen, draw_colour, pick_up_rect1)
-            pygame.draw.rect(self._screen, draw_colour, pick_up_rect2)
-            pygame.draw.rect(self._screen, draw_colour, pick_up_rect3)
-
-            #passenger_center = self.get_cell_center(passenger.pick_up)
-            #draw_text(self._screen, f"{passenger.id}", passenger_center, (0, 0, 0), 18, bold=True)
-
-
-        drop_off_upper_left = self.get_upper_left(passenger.drop_off)
-        drop_off_rect = pygame.Rect(drop_off_upper_left[0], drop_off_upper_left[1],
-                                    self._cell_width, self._cell_height)
-        pygame.draw.rect(self._screen, draw_colour, drop_off_rect, 2 * px_side)
+        # taxi_center = self.get_cell_center(taxi.loc)
+        # draw_text(self._screen, f"{taxi.id}", taxi_center, (0, 0, 0), 18, bold=True)
 
 
 def draw_text(
-    screen: pygame.Surface,
-    text: str, 
-    center: Tuple[int, int], 
-    color: Tuple[int, int, int], 
-    size: int, 
-    font: str = "arial", 
-    bold: bool = False,
+        screen: pygame.Surface,
+        text: str,
+        center: Tuple[int, int],
+        color: Tuple[int, int, int],
+        size: int,
+        font: str = "arial",
+        bold: bool = False,
 ):
     font = pygame.font.SysFont(font, size, bold)
     surf = font.render(text, True, color)

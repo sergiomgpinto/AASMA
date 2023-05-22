@@ -2,10 +2,9 @@ import abc
 import dataclasses
 import enum
 import grid
-import agent
 import log
 import numpy as np
-import drone as Drone
+import drone as drone
 
 
 from typing import List, Optional
@@ -23,7 +22,7 @@ class Observation:
     """
 
     map: grid.Map
-    drones: List[Drone.Drone]
+    drones: List[drone.Drone]
 
 
 
@@ -56,7 +55,7 @@ class Action(enum.Enum):
 
 class Environment:
 
-    drones: List[Drone.Drone]
+    drones: List[drone.Drone]
 
     def __init__(
         self,
@@ -142,7 +141,7 @@ class Environment:
         self.drones = []
         #self.final_passengers = []
 
-        for i in range(self.init_drones):
+        for i in range(self._init_drones):
             self.drones.append(self._create_drone(i))
 
         '''
@@ -153,7 +152,7 @@ class Environment:
         self.passengers_travelling = [i for i in range(len(self.passengers))] 
         '''
 
-    def _create_drone(self, id: int) -> Drone.Drone:
+    def _create_drone(self, id: int) -> drone.Drone:
         """Creates a drone with a random location and direction.
         
         The drone initial location will not overlap with another drone."""
@@ -167,35 +166,35 @@ class Environment:
             for l in self.map.possible_drone_positions
             if l not in occupied_locations
         ]
-    
+
         if len(possible_drone_locations) == 0:
             raise ValueError("Unable to create drone: Not enough free locations.")
         loc = self._rng.choice(possible_drone_locations)
-        possible_drone_directions = [
-            agent.Direction.UP, 
-            agent.Direction.DOWN, 
-            agent.Direction.LEFT, 
-            agent.Direction.RIGHT,
-        ]
-        direction = self._rng.choice(possible_drone_directions)
-        drone = agent.Drone(loc=loc, direction=direction, id=id)
-        log.create_drone(self._logger, self._timestep, drone)
-        return drone
 
-    def _move_drone(self, drone: Drone.Drone, action: Action):
+
+        possible_drone_directions = [drone.Direction.UP,
+                                     drone.Direction.DOWN,
+                                     drone.Direction.LEFT, drone.Direction.RIGHT]
+
+        direction = self._rng.choice(possible_drone_directions)
+        temp_drone = drone.Drone(loc=loc,map=self.map, direction=direction, id=id)
+        log.create_drone(self._logger, self._timestep, temp_drone)
+        return temp_drone
+
+    def _move_drone(self, drone: drone.Drone, action: Action):
         """Move a drone according to an action."""
         if action == Action.UP:
             target_loc = drone.loc.up
-            target_dir = agent.Direction.UP
+            target_dir = drone.Direction.UP
         elif action == Action.DOWN:
             target_loc = drone.loc.down
-            target_dir = agent.Direction.DOWN
+            target_dir = drone.Direction.DOWN
         elif action == Action.RIGHT:
             target_loc = drone.loc.right
-            target_dir = agent.Direction.RIGHT
+            target_dir = drone.Direction.RIGHT
         elif action == Action.LEFT:
             target_loc = drone.loc.left
-            target_dir = agent.Direction.LEFT
+            target_dir = drone.Direction.LEFT
         else:
             raise ValueError(f"Unknown direction in drone movement {self.direction}")
         

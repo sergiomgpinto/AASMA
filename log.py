@@ -1,8 +1,9 @@
 import env
-"""import agent
 import logging
+import drone as drone
 
 logging.basicConfig(format="t = %(timestep)s \t %(levelname)s \t %(name)s \t %(message)s")
+
 
 def new(name: str, lvl: str = "info") -> logging.Logger:
     logger = logging.getLogger(name=name)
@@ -12,12 +13,14 @@ def new(name: str, lvl: str = "info") -> logging.Logger:
     logger.setLevel(lvl)
     return logger
 
-def create_drone(logger: logging.Logger, t: int, drone: drone):
+
+def create_drone(logger: logging.Logger, t: int, drone: drone.Drone):
     logger.info("Created %r", drone, extra={"timestep": t})
+
 
 def choosen_action(logger: logging.Logger, t: int, agent: int, action: "env.Action"):
     logger.info("Agent %d wants to %r", agent, action, extra={"timestep": t})
 
-def drone(logger: logging.Logger, t: int, drone: drone):
+
+def drone(logger: logging.Logger, t: int, drone: drone.Drone):
     logger.info("Drone %r", drone, extra={"timestep": t})
-"""

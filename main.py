@@ -72,11 +72,11 @@ def main():
     with open("./config.yml", "r") as fp:
         data = yaml.safe_load(fp)
 
+    num_charging_stations = data[data["agent_type"]]["nr_charging_stations"]
     num_agents = data[data["agent_type"]]["nr_agents"]
-    #init_passengers = data[data["agent_type"]]["nr_passengers"]
     
     if data["agent_type"] == "Random":
-        agents = [agent.Random() for i in range(num_agents)]
+        agents = [agent.Random() for _ in range(num_agents)]
     elif data["agent_type"] == "PathPlanner":
         agents = [agent.PathPlanner(agent_id=i) for i in range(num_agents)]
     elif data["agent_type"] == "Debug":

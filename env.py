@@ -58,10 +58,12 @@ class Environment:
 
     drones: List[drone.Drone]
     charging_station: chargingstation.ChargingStation
+    
 
     def __init__(
         self,
         map: grid.Map,
+        planted_squares: list(tuple()),
         init_drones: int,
         printer: "Optional[Printer]" = None,
         log_level: Optional[str] = "info",
@@ -69,6 +71,7 @@ class Environment:
         seed: Optional[int] = None,
     ):
         self.map = map
+        self.planted_squares = planted_squares
         self._rng = np.random.default_rng(seed=seed)
         self._printer = printer
 
@@ -107,6 +110,9 @@ class Environment:
 
             elif act == Action.PLANT:
                 drone.plant()
+                p = drone.loc
+                self.planted_squares.append(tuple([p,self.map.choose_seed(p)]))
+
             
             elif act == Action.CHARGE:
                 drone.charge()

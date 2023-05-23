@@ -238,10 +238,10 @@ class Map:
         return None
 
     # retorna os índices correspondentes ao inventário de seeds dos agentes drones
-    def choose_seed(self, p: Position) -> int:
+    def choose_seed(self, p: Position) -> Cell:
         if self.has_adj_of_type(p,Cell.OAK_TREE):
-            return 0
+            return Cell.OAK_TREE
         elif self.has_adj_of_type(p,Cell.PINE_TREE):
-            return 1
+            return Cell.PINE_TREE
         elif self.has_adj_of_type(p,Cell.EUCALYPTUS_TREE):
-            return 2
+            return Cell.EUCALYPTUS_TREE

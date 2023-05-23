@@ -74,18 +74,45 @@ class EnvironmentPrinter(env.Printer):
         )
         for d in env.drones:
             drone_printer.print(d)
+        
+        self._add_colour_to_planted_squares(env)
 
         pygame.display.flip()
 
-    '''
-    def _add_colour_to_planted_squares(self, env.map: env.Map):
-        planted_trees_location = {p.drop_off for p in passengers}
-        mark_for_colour = []
-        for loc in self._tree_colours:
+    
+    def _add_colour_to_planted_squares(self, env: env.Environment):
+        
+        planted_squares = env.planted_squares
+        env_grid = env.map.grid
+        n_cols, n_rows = env_grid.shape
+
+        assert self.__height % n_cols == 0, "display height is not divisible by number of columns in grid"
+        assert self.__width % n_rows == 0, "display width is not divisible by number of rows in grid"
+
+        cell_height = self.__height // n_cols
+        cell_width = self.__width // n_rows
+
+        for tuples in planted_squares:
+            pos = tuples[0]
+            cell_type = tuples[1]
+            if cell_type == grid.Cell.OAK_TREE: 
+                OakTreePrinter(screen=self.__screen, cell_width=cell_width, cell_height=cell_height,).print(pos)
+            if cell_type == grid.Cell.PINE_TREE: 
+                PineTreePrinter(screen=self.__screen, cell_width=cell_width, cell_height=cell_height,).print(pos)
+            if cell_type == grid.Cell.EUCALYPTUS_TREE: 
+                EucalyptusTreePrinter(screen=self.__screen, cell_width=cell_width, cell_height=cell_height,).print(pos)
+        
+        return None
+    
+    ''' 
+    def _remove_colours_for_disapeared_passengers(self, passengers: List[entity.Passenger]):
+        drop_off_locations = {p.drop_off for p in passengers}
+        mark_for_delete = []
+        for loc in self._passenger_colours:
             if loc not in drop_off_locations:
-                mark_for_colour.append(loc)
-        for loc in mark_for_colour:
-            del self._tree_colours[loc]
+                mark_for_delete.append(loc)
+        for loc in mark_for_delete:
+            del self._passenger_colours[loc]
     '''
 
     def __enter__(self):

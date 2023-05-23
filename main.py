@@ -16,7 +16,7 @@ from typing import List
 def run_graphical(map: grid.Map, agents: List[agent.Base], log_level: str):
     with graphical.EnvironmentPrinter(map.grid) as printer:
         environment = env.Environment(
-            map=map, init_drones=len(agents), printer=printer, log_level=log_level,
+            map=map, planted_squares=[], init_drones=len(agents), printer=printer, log_level=log_level,
         )
         # Initial render to see initial environment.
         observations = environment.reset()

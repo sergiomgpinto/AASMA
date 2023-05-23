@@ -32,6 +32,7 @@ def run_graphical(map: grid.Map, agents: List[agent.Base], log_level: str):
                 agent.see(observations)
 
             actions = [a.act() for a in agents]
+            print("ACTIONS DOS 4 DRONES",actions)
             observations, terminal = environment.step(*actions)
             n_steps += 1
             environment.render()

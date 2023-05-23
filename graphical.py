@@ -104,16 +104,6 @@ class EnvironmentPrinter(env.Printer):
         
         return None
     
-    ''' 
-    def _remove_colours_for_disapeared_passengers(self, passengers: List[entity.Passenger]):
-        drop_off_locations = {p.drop_off for p in passengers}
-        mark_for_delete = []
-        for loc in self._passenger_colours:
-            if loc not in drop_off_locations:
-                mark_for_delete.append(loc)
-        for loc in mark_for_delete:
-            del self._passenger_colours[loc]
-    '''
 
     def __enter__(self):
         pygame.init()

@@ -84,6 +84,7 @@ class Drone:
         if ( self.loc == grid.Cell.FERTILE_LAND ):
             # menos uma seed
             nr_seeds[0] -= 1
+            print('fertile land')
         else:
-            pass
+            print('not fertile land')
         return None

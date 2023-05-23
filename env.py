@@ -110,11 +110,16 @@ class Environment:
 
             elif act == Action.PLANT:
                 drone.plant()
+                """
                 p = drone.loc
                 s = self.map.choose_seed(p)
+                print("pos",p)
+                print("cell type before",self.map.grid[p.y, p.x])
                 self.map.change_cell_type(p,s)
+                print("cell type after:",self.map.grid[p.y, p.x])
                 print('change cell type to',s)
                 self.planted_squares.append(tuple([p,s]))
+                """
 
             
             elif act == Action.CHARGE:

@@ -1,7 +1,7 @@
 import abc
 import drone 
 import chargingstation
-import env
+import env as env
 import grid
 import numpy as np
 
@@ -57,6 +57,7 @@ class PathBased(EnergyBased):
 
     def _plant_nearest_square(self, agent_drone: drone.Drone) -> env.Action:
         plantable_pos = agent_drone.map.plantable_squares()
+        print('plantable_pos',plantable_pos)
         if len(plantable_pos) == 0:
             return env.Action.STAY
 
@@ -144,7 +145,15 @@ class PathPlanner(PathBased):
             return self._go_to_charging_station(agent_drone)
         else:
             print("go plant")
-            return self._plant_nearest_square(agent_drone)
+            self._plant_nearest_square(agent_drone)
+            p = agent_drone.loc
+            s = env.map.choose_seed(agent_drone.loc)
+            print("pos",p)
+            print("cell type before",self.map.grid[p.y, p.x])
+            env.map.change_cell_type(p,s)
+            print("cell type after:",self.map.grid[p.y, p.x])
+            print('change cell type to',s)
+            env.planted_squares.append(tuple([p,s]))
             
     
 '''

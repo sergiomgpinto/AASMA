@@ -6,6 +6,8 @@ import numpy as np
 
 from typing import List, Optional
 
+import random
+
 
 @dataclasses.dataclass(frozen=True)
 class Position:
@@ -210,7 +212,10 @@ class Map:
         been planted. 
         
         """
-        plantable_positions = [p for p in self.all_positions if self.is_fertile_land(p)]
+        plantable_positions = []
+        for p in self.all_positions:
+            if self.is_fertile_land(p):
+                plantable_positions.append(p)
         return plantable_positions
     
     def find_charging_station(self) -> Position:

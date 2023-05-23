@@ -49,10 +49,10 @@ class EnergyBased(Base):
         
         """
         return len(self._bfs_with_positions(agent_drone.map,agent_drone.loc,target)) + len(self._bfs_with_positions(agent_drone.map,target,agent_drone.map.
-        find_charging_station(agent_drone.map))) > agent_drone.batery_available
+        find_charging_station())) > agent_drone.batery_available
 
 
-class PathBased(Base):
+class PathBased(EnergyBased):
     """Utility class with path based functions."""
 
     def _plant_nearest_square(self, agent_drone: drone.Drone) -> env.Action:
@@ -66,8 +66,10 @@ class PathBased(Base):
         ]
         path_idx = np.argmin([len(p) for p in shortest_paths])
 
-        if EnergyBased._has_enough_energy(agent_drone,plantable_pos[path_idx]):
-            return self._move_in_path_and_act(shortest_paths[path_idx], env.Action.PLANT)
+        if self._has_enough_energy(agent_drone,plantable_pos[path_idx]):
+            action = self._move_in_path_and_act(shortest_paths[path_idx], env.Action.PLANT)
+            print('ACTION',action)
+            return action
         else:
             return self._go_to_charging_station(agent_drone)
     
@@ -81,9 +83,11 @@ class PathBased(Base):
 
     def _move_in_path_and_act(self, path: List[grid.Position], last_action: env.Action) -> env.Action:
         if len(path) == 1:
+            print('path 1')
             return last_action
         curr_pos = path[0]
         next_pos = path[1]
+        print('not path 1')
         if next_pos == curr_pos.up:
             return env.Action.UP
         elif next_pos == curr_pos.down:
@@ -115,7 +119,7 @@ class PathBased(Base):
             if curr in target.adj:
                 return list(curr_path)
             for neighbour in curr.adj:
-                if neighbour not in visited and map.is_road(neighbour):
+                if neighbour not in visited:
                     neighbour_path = curr_path + (neighbour,)
                     queue.append((neighbour, neighbour_path))
                     visited.add(neighbour)
@@ -135,10 +139,11 @@ class PathPlanner(PathBased):
         # Conditions in which the drone needs to go to charging station ???
         # deviamos adicionar uma função reutilizavel para isto 
         if agent_drone.nr_seeds.count(0) == 3 or len(self._bfs_with_positions(agent_drone.map,agent_drone.loc,agent_drone.map.
-        find_charging_station(agent_drone.map))) == agent_drone.batery_available :
-
+        find_charging_station())) == agent_drone.batery_available :
+            print("go to charging station")
             return self._go_to_charging_station(agent_drone)
         else:
+            print("go plant")
             return self._plant_nearest_square(agent_drone)
             
     

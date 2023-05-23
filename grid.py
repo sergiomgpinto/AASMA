@@ -197,6 +197,11 @@ class Map:
         else:
             raise ValueError(f"Unknown cell type: {cell_type}")
     
+    def change_cell_type(self, p: Position, cell_type: Cell):
+        """
+        Modifies cell type of position p in the environment grid.
+        """
+        self.grid[p.y, p.x] = cell_type
 
     # TODO: What more behaviour do we need?
     def plantable_squares(self) -> List[Position]:
@@ -245,3 +250,5 @@ class Map:
             return Cell.PINE_TREE
         elif self.has_adj_of_type(p,Cell.EUCALYPTUS_TREE):
             return Cell.EUCALYPTUS_TREE
+        else:
+            return random.choice([Cell.OAK_TREE,Cell.PINE_TREE,Cell.EUCALYPTUS_TREE])

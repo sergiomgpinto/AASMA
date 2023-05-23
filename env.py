@@ -111,7 +111,10 @@ class Environment:
             elif act == Action.PLANT:
                 drone.plant()
                 p = drone.loc
-                self.planted_squares.append(tuple([p,self.map.choose_seed(p)]))
+                s = self.map.choose_seed(p)
+                self.map.change_cell_type(p,s)
+                print('change cell type to',s)
+                self.planted_squares.append(tuple([p,s]))
 
             
             elif act == Action.CHARGE:
@@ -136,7 +139,9 @@ class Environment:
             self.final_passengers += [[p.pick_up_time, p.travel_time] for p in self.passengers]
         '''
         return [observation for _ in range(len(actions))], self.terminal
-            
+    
+    
+
     def render(self):
         if not self._printer:
             raise ValueError("Unable to render without printer")

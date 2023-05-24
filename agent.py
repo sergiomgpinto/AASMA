@@ -1,17 +1,17 @@
 import abc
-import drone 
-import chargingstation
-import env as env
+import drone
 import grid
+import env as env
 import numpy as np
-
 from typing import List
+from abc import ABC
+
 
 class Base(abc.ABC):
     """Base class for all agents."""
 
     _last_observation: env.Observation
-    
+
     def see(self, obs: env.Observation) -> None:
         """Observes the current state of the environment through its sensores."""
         self._last_observation = obs
@@ -20,6 +20,7 @@ class Base(abc.ABC):
     def act(self) -> env.Action:
         """Acts based on the last observation and any other information."""
         pass
+
 
 class Random(Base):
     """Baseline agent that randomly chooses an action at each timestep."""
@@ -39,50 +40,53 @@ class Random(Base):
     def act(self) -> env.Action:
         return self._rng.choice(self._actions)
 
-class EnergyBased(Base):
+
+class EnergyBased(Base, ABC):
     """Utility class with path based functions."""
 
-    def _has_enough_energy(self, agent_drone: drone.Drone, target: grid.Position) -> bool:
+    def has_enough_energy(self, agent_drone: drone.Drone, target: grid.Position):
         """
         Checks that there is enough energy to go to nearest plantable square and head back to charging station,
         considering the drone's current position, the target and the target's distance to the charging station.
         
         """
-        return len(self._bfs_with_positions(agent_drone.map,agent_drone.loc,target)) + len(self._bfs_with_positions(agent_drone.map,target,agent_drone.map.
-        find_charging_station())) > agent_drone.batery_available
+        pass
+        '''
+        return len(bfs_with_positions(agent_drone.loc, target)) \
+               + len(bfs_with_positions(target, agent_drone.map.find_charging_station())) > agent_drone.batery_available
+        '''
 
 
-class PathBased(EnergyBased):
+class PathBased(EnergyBased, ABC):
     """Utility class with path based functions."""
 
-    def _plant_nearest_square(self, agent_drone: drone.Drone) -> env.Action:
+    def plant_nearest_square(self, agent_drone: drone.Drone) -> env.Action:
         plantable_pos = agent_drone.map.plantable_squares()
-        print('plantable_pos',plantable_pos)
+        print('plantable_pos', plantable_pos)
         if len(plantable_pos) == 0:
             return env.Action.STAY
 
         shortest_paths = [
-            self._bfs_with_positions(agent_drone.map, agent_drone.loc, p) 
+            self.bfs_with_positions(agent_drone.loc, p)
             for p in plantable_pos
         ]
         path_idx = np.argmin([len(p) for p in shortest_paths])
 
-        if self._has_enough_energy(agent_drone,plantable_pos[path_idx]):
-            action = self._move_in_path_and_act(shortest_paths[path_idx], env.Action.PLANT)
-            print('ACTION',action)
+        if self.has_enough_energy(agent_drone, plantable_pos[path_idx]):
+            action = self.move_in_path_and_act(shortest_paths[path_idx], env.Action.PLANT)
+            print('ACTION', action)
             return action
         else:
-            return self._go_to_charging_station(agent_drone)
-    
-    
-    def _go_to_charging_station(self, agent_drone: drone.Drone) -> env.Action:
-        
-        charging_station_pos = agent_drone.map.find_charging_station(agent_drone.map)
-        shortest_path = self._bfs_with_positions(agent_drone.map, agent_drone.loc, charging_station_pos)
-        return self._move_in_path_and_act(shortest_path, env.Action.CHARGE)
+            return self.go_to_charging_station(agent_drone)
 
+    def go_to_charging_station(self, agent_drone: drone.Drone) -> env.Action:
 
-    def _move_in_path_and_act(self, path: List[grid.Position], last_action: env.Action) -> env.Action:
+        charging_station_pos = agent_drone.map.find_charging_station()
+        shortest_path = self.bfs_with_positions(agent_drone.loc, charging_station_pos)
+        return self.move_in_path_and_act(shortest_path, env.Action.CHARGE)
+
+    @staticmethod
+    def move_in_path_and_act(path: List[grid.Position], last_action: env.Action) -> env.Action:
         if len(path) == 1:
             print('path 1')
             return last_action
@@ -102,13 +106,12 @@ class PathBased(EnergyBased):
                 f"Unknown adj direction: (curr_pos: {curr_pos}, next_pos: {next_pos})"
             )
 
-    def _bfs_with_positions(
-        self, map: grid.Map, source: grid.Position, target: grid.Position,
-    ) -> List[grid.Position]:
+    @staticmethod
+    def bfs_with_positions(source: grid.Position, target: grid.Position) -> List[grid.Position]:
         """Computes the list of positions in the path from source to target.
         
         It uses a BFS so the path is the shortest path."""
-        
+
         # The queue stores tuple with the nodes to explore
         # and the path taken to the node.
         queue = [(source, (source,))]
@@ -127,6 +130,7 @@ class PathBased(EnergyBased):
         raise ValueError("No path found")
 
 
+'''
 class PathPlanner(PathBased):
     """Agent that plans its path using a BFS."""
 
@@ -136,26 +140,29 @@ class PathPlanner(PathBased):
 
     def act(self) -> env.Action:
         agent_drone = self._last_observation.drones[self._agent_id]
-        
+
         # Conditions in which the drone needs to go to charging station ???
         # deviamos adicionar uma função reutilizavel para isto 
-        if agent_drone.nr_seeds.count(0) == 3 or len(self._bfs_with_positions(agent_drone.map,agent_drone.loc,agent_drone.map.
-        find_charging_station())) == agent_drone.batery_available :
+        if agent_drone.nr_seeds.count(0) == 3 \
+                or len(self.bfs_with_positions(agent_drone.loc,
+                                               agent_drone.map.find_charging_station())) \
+                == agent_drone.batery_available:
             print("go to charging station")
-            return self._go_to_charging_station(agent_drone)
+            return self.go_to_charging_station(agent_drone)
         else:
             print("go plant")
-            self._plant_nearest_square(agent_drone)
+            self.plant_nearest_square(agent_drone)
             p = agent_drone.loc
-            s = env.map.choose_seed(agent_drone.loc)
-            print("pos",p)
-            print("cell type before",self.map.grid[p.y, p.x])
-            env.map.change_cell_type(p,s)
-            print("cell type after:",self.map.grid[p.y, p.x])
-            print('change cell type to',s)
-            env.planted_squares.append(tuple([p,s]))
-            
-    
+            s = Map.choose_seed(agent_drone.loc)
+            print("pos", p)
+            print("cell type before", self.map.grid[p.y, p.x])
+            Map.change_cell_type(p, s)
+            print("cell type after:", self.map.grid[p.y, p.x])
+            print('change cell type to', s)
+            env.planted_squares.append(tuple([p, s]))
+
+
+'''
 '''
 class QuadrantsSocialConventions(PathBased):
     """Agent that uses social conventions to attribute passengers.
@@ -278,6 +285,7 @@ class Roles(PathBased):
                 return self._move_in_path_and_act(shortest_path, env.Action.PICK_UP)
         return env.Action.STAY    
 '''
+
 
 class Debug(Base):
     """Debug agent that prompts the user for the next action."""

@@ -3,20 +3,17 @@ import env
 import grid
 import default
 import graphical
-
 import numpy as np
 import pygame
 import yaml
 import tqdm
-
-
 from typing import List
 
 
-def run_graphical(map: grid.Map, agents: List[agent.Base], log_level: str):
-    with graphical.EnvironmentPrinter(map.grid) as printer:
+def run_graphical(local_map: grid.Map, agents: List[agent.Base], log_level: str):
+    with graphical.EnvironmentPrinter(local_map.grid) as printer:
         environment = env.Environment(
-            map=map, planted_squares=[], init_drones=len(agents), printer=printer, log_level=log_level,
+            env_map=local_map, planted_squares=[], init_drones=len(agents), printer=printer, log_level=log_level,
         )
         # Initial render to see initial environment.
         observations = environment.reset()
@@ -28,60 +25,61 @@ def run_graphical(map: grid.Map, agents: List[agent.Base], log_level: str):
                 if event.type == pygame.QUIT:
                     running = False
 
-            for observations, agent in zip(observations, agents):
-                agent.see(observations)
+            for observations, ag in zip(observations, agents):
+                ag.see(observations)
 
             actions = [a.act() for a in agents]
-            print("ACTIONS DOS 4 DRONES",actions)
+            print("ACTIONS DOS 4 DRONES", actions)
             observations, terminal = environment.step(*actions)
             n_steps += 1
             environment.render()
             if terminal:
                 break
 
-            #time.sleep(1)
+            # time.sleep(1)
     # TODO: util para as metricas 
-    #squares_planted = len(environment.final_passengers) - len(environment.passengers)
-    return environment.drones, n_steps #, environment.final_passengers, squares_planted, n_steps
+    # squares_planted = len(environment.final_passengers) - len(environment.passengers)
+    return environment.drones, n_steps  # , environment.final_passengers, squares_planted, n_steps
 
 
-def run_not_graphical(map: grid.Map, agents: List[agent.Base], log_level: str):
+def run_not_graphical(local_map: grid.Map, agents: List[agent.Base], log_level: str):
     environment = env.Environment(
-        map=map, init_drones=len(agents), log_level=log_level)
+        env_map=local_map, planted_squares=[], init_drones=len(agents), log_level=log_level)
 
     observations = environment.reset()
     running = True
     n_steps = 0
     while running:
-        
-        for observations, agent in zip(observations, agents):
-            agent.see(observations)
-        
+
+        for observations, ag in zip(observations, agents):
+            ag.see(observations)
+
         actions = [a.act() for a in agents]
         observations, terminal = environment.step(*actions)
         n_steps += 1
         if terminal:
             break
-        #time.sleep(1)
-    #TODO: metricas
-    #n_delivered = len(environment.map.) - len(environment.passengers)
-    return environment.drones, n_steps #,n_delivered
+        # time.sleep(1)
+    # TODO: metricas
+    # n_delivered = len(environment.map.) - len(environment.passengers)
+    return environment.drones, n_steps  # ,n_delivered
+
 
 def main():
-
-
     with open("./config.yml", "r") as fp:
         data = yaml.safe_load(fp)
 
-    num_charging_stations = data[data["agent_type"]]["nr_charging_stations"]
+    # num_charging_stations = data[data["agent_type"]]["nr_charging_stations"]
     num_agents = data[data["agent_type"]]["nr_agents"]
-    
+
     if data["agent_type"] == "Random":
         agents = [agent.Random() for _ in range(num_agents)]
     elif data["agent_type"] == "PathPlanner":
         agents = [agent.PathPlanner(agent_id=i) for i in range(num_agents)]
     elif data["agent_type"] == "Debug":
         agents = [agent.Debug(agent_id=i) for i in range(num_agents)]
+    else:
+        raise ValueError(f"Unknown agent type: {data['agent_type']}")
     '''
     elif data["agent_type"] == "QuadrantsSocialConventions":
         agents = [agent.QuadrantsSocialConventions(agent_id=i) for i in range(num_agents)]
@@ -91,8 +89,7 @@ def main():
         agents = [agent.Roles(agent_id=i) for i in range(num_agents)]
     '''
 
-
-    map = grid.Map(default.MAP)
+    global_map = grid.Map(default.MAP)
 
     run_with_graphics = data["graphical"]
     log_level = data["log_level"]
@@ -105,14 +102,14 @@ def main():
         iterable = range(n_runs)
     else:
         iterable = tqdm.tqdm(range(n_runs))
-    
+
     for _ in iterable:
         if run_with_graphics:
-            drones, n_steps = run_graphical(map, agents, log_level)
-            #drones, n_delivered, n_steps = run_graphical(map, agents, log_level)
+            drones, n_steps = run_graphical(global_map, agents, log_level)
+            # drones, n_delivered, n_steps = run_graphical(map, agents, log_level)
         else:
-            #taxis, passengers, n_delivered, n_steps = run_not_graphical(map, agents, log_level)
-            drones, n_steps = run_not_graphical(map, agents, log_level)
+            # taxis, passengers, n_delivered, n_steps = run_not_graphical(map, agents, log_level)
+            drones, n_steps = run_not_graphical(global_map, agents, log_level)
 
         # media da distancia percorrida pelos drones
         avg_drone_distance = np.mean([drone.total_distance for drone in drones])
@@ -126,7 +123,6 @@ def main():
         metrics.write("drone_distance,n_steps\n")
         for d, n in zip(drones_distances, all_n_steps):
             metrics.write(f"{d},{n}\n")
-
 
 
 if __name__ == "__main__":

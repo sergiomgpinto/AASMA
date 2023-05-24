@@ -1,9 +1,8 @@
 import dataclasses
 import enum
-
 import numpy as np
-
 from typing import List, Optional
+import random
 
 
 @dataclasses.dataclass(frozen=True)
@@ -74,13 +73,12 @@ class Position:
 
 class Cell(enum.Enum):
     """Represents each cell of the grid."""
-    UNKOWN = -1  # Represents the houses in the project proposal figure.
-    OBSTACLE = 0  # Represents the houses in the project proposal figure.
-    FERTILE_LAND = 1
-    OAK_TREE = 2
-    PINE_TREE = 3
-    EUCALYPTUS_TREE = 4
-    CHARGING_STATION = 5  # We assume a single charging station by now. Position is also fixed.
+    FERTILE_LAND = 0
+    OAK_TREE = 1
+    PINE_TREE = 2
+    EUCALYPTUS_TREE = 3
+    CHARGING_STATION = 4  # We assume a single charging station by now. Position is also fixed.
+    OBSTACLE = 5  # Represents the houses in the project proposal figure.
 
     # Did not include a cell yet for the drone since it can be anywhere in the grid. May reconsider.
 
@@ -119,6 +117,7 @@ class Map:
         """Returns all the positions in the map where the drone can be."""
         return self.all_positions
 
+    '''
     @property
     def possible_station_positions(self) -> List[Position]:
         return [
@@ -126,6 +125,7 @@ class Map:
             for p in self.all_positions 
             if self.is_fertile(p) # the station will appear in 1 of the fertile land squares
         ]
+    '''
 
     def is_obstacle(self, p: Position) -> bool:
         """Returns True if the position is an obstacle, False otherwise."""
@@ -153,32 +153,103 @@ class Map:
 
     def is_charging_station(self, p: Position) -> bool:
         """Returns True if the position is a charging station, False otherwise."""
+        print(self.grid[p.y, p.x])
         return self.grid[p.y, p.x] == Cell.CHARGING_STATION
 
-
-    @property
+    # @property
     def is_inside_map(self, p: Position) -> bool:
         return 0 <= p.y < self.height and 0 <= p.x < self.width
 
     def adj_positions(self, p: Position) -> List[Position]:
-        positions = [adj for adj in p.adj if self.is_inside_map(adj)]
+        positions = [adj for adj in p.adj if
+                     self.is_inside_map(adj)]  # aqui devia ser is_inside_map(adj) mas dava erro entao substitui por p
+        return positions
+
+    def adj_pos_of_type(self, p: Position, cell_type: Optional[Cell]) -> List[Position]:
+        positions = self.adj_positions(p)
+        if cell_type == Cell.FERTILE_LAND:
+            positions = [adj for adj in positions if self.is_fertile_land(adj)]
+        elif cell_type == Cell.OAK_TREE:
+            positions = [adj for adj in positions if self.is_oak_tree(adj)]
+        elif cell_type == Cell.PINE_TREE:
+            positions = [adj for adj in positions if self.is_pine_tree(adj)]
+        elif cell_type == Cell.EUCALYPTUS_TREE:
+            positions = [adj for adj in positions if self.is_eucalyptus_tree(adj)]
+        elif cell_type == Cell.OBSTACLE:
+            positions = [adj for adj in positions if self.is_obstacle(adj)]
+        else:
+            raise ValueError(f"Unknown cell type: {cell_type}")
         return positions
 
     def has_adj_of_type(self, p: Position, cell_type: Optional[Cell]) -> bool:
-        positions = self.adj_positions(p, cell_type)
+        positions = self.adj_positions(p)
         if cell_type == Cell.FERTILE_LAND:
-            return any(self.is_fertile(adj) for adj in positions)
+            return any(self.is_fertile_land(adj) for adj in positions)
         elif cell_type == Cell.OAK_TREE:
             return any(self.is_oak_tree(adj) for adj in positions)
         elif cell_type == Cell.PINE_TREE:
             return any(self.is_pine_tree(adj) for adj in positions)
         elif cell_type == Cell.EUCALYPTUS_TREE:
-            return any(self.is_eucalyptus(adj) for adj in positions)
+            return any(self.is_eucalyptus_tree(adj) for adj in positions)
         elif cell_type == Cell.OBSTACLE:
             return any(self.is_obstacle(adj) for adj in positions)
         else:
             raise ValueError(f"Unknown cell type: {cell_type}")
-        
-    
 
-    # TODO: What more behaviours do we need?
+    def change_cell_type(self, p: Position, cell_type: Cell):
+        """
+        Modifies cell type of position p in the environment grid.
+        """
+        self.grid[p.y, p.x] = cell_type
+
+    # TODO: What more behaviour do we need?
+    def plantable_squares(self) -> List[Position]:
+        """
+        Looks at the grid and returns fertile land squares that have not yet
+        been planted. 
+        
+        """
+        plantable_positions = []
+        for p in self.all_positions:
+            if self.is_fertile_land(p):
+                plantable_positions.append(p)
+        return plantable_positions
+
+    def find_charging_station(self):
+        """
+        Looks at the grid and returns the position of the charging station
+            
+        """
+        for p in self.all_positions:
+            if self.is_charging_station(p):
+                return p
+        pass
+
+    def choose_adj_fertile_land(self, p: Position):
+        """
+        Looks for the closest fertile cell and decides which seed to plant
+        Args:
+            p (Position): Drone Position in the grid
+
+        Returns:
+            Pos: Returns the position of the closest fertile land. 
+                       If there's none return null.
+        """
+        # FIXME: Add a shuffle
+        fertile_land_nearby = self.adj_positions(p)
+
+        for fertile_land in fertile_land_nearby:
+            return fertile_land
+
+        return None
+
+    # retorna os índices correspondentes ao inventário de seeds dos agentes drones
+    def choose_seed(self, p: Position) -> Cell:
+        if self.has_adj_of_type(p, Cell.OAK_TREE):
+            return Cell.OAK_TREE
+        elif self.has_adj_of_type(p, Cell.PINE_TREE):
+            return Cell.PINE_TREE
+        elif self.has_adj_of_type(p, Cell.EUCALYPTUS_TREE):
+            return Cell.EUCALYPTUS_TREE
+        else:
+            return random.choice([Cell.OAK_TREE, Cell.PINE_TREE, Cell.EUCALYPTUS_TREE])

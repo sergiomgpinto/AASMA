@@ -73,6 +73,7 @@ class Position:
         return [self.up, self.down, self.left, self.right,
                 self.up_left, self.up_right,
                 self.down_left, self.down_right]
+    
 
 
 class Cell(enum.Enum):
@@ -157,13 +158,13 @@ class Map:
 
     def is_charging_station(self, p: Position) -> bool:
         """Returns True if the position is a charging station, False otherwise."""
-        print(self.grid[p.y, p.x])
         return self.grid[p.y, p.x] == Cell.CHARGING_STATION
 
 
     #@property
     def is_inside_map(self, p: Position) -> bool:
         return 0 <= p.y < self.height and 0 <= p.x < self.width
+    
 
     def adj_positions(self, p: Position) -> List[Position]:
         positions = [adj for adj in p.adj if self.is_inside_map(adj)] #aqui devia ser is_inside_map(adj) mas dava erro entao substitui por p 

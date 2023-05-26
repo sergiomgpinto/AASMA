@@ -200,6 +200,8 @@ class DronePrinter(BasePrinter):
 
         # Por agora a nossa imagem é simétrica mas se metermos um drone com frente e trás isto pode ser util 
         # por isso é que deixei aqui 
+        drone_sprite = pygame.transform.rotate(drone_icon, 0)
+        '''
         if d.direction == drone.Direction.UP:
             drone_sprite = pygame.transform.rotate(drone_icon, 0)
 
@@ -211,6 +213,18 @@ class DronePrinter(BasePrinter):
 
         elif d.direction == drone.Direction.RIGHT:
             drone_sprite = pygame.transform.rotate(drone_icon, -90)
+
+        elif d.direction == drone.Direction.UP_RIGHT:
+            drone_sprite = pygame.transform.rotate(drone_icon, -45)
+        
+        elif d.direction == drone.Direction.UP_LEFT:
+            drone_sprite = pygame.transform.rotate(drone_icon, 45)
+        
+        elif d.direction == drone.Direction.DOWN_RIGHT:
+            drone_sprite = pygame.transform.rotate(drone_icon, 0)
+        
+        elif d.direction == drone.Direction.DOWN_LEFT:
+            drone_sprite = pygame.transform.rotate(drone_icon, 0)
 
         #if d.has_passenger is not None:
             # taxi_center = self.get_cell_center(taxi.loc)
@@ -226,11 +240,12 @@ class DronePrinter(BasePrinter):
             # pygame.draw.rect(self._screen, draw_colour, taxi_rect1)
             # pygame.draw.rect(self._screen, draw_colour, taxi_rect2)
             # pygame.draw.rect(self._screen, draw_colour, taxi_rect3)
-
+        '''
         self._screen.blit(drone_sprite, (left, top))
 
         # taxi_center = self.get_cell_center(taxi.loc)
         # draw_text(self._screen, f"{taxi.id}", taxi_center, (0, 0, 0), 18, bold=True)
+        
 
 
 def draw_text(

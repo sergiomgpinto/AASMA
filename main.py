@@ -9,6 +9,8 @@ import pygame
 import yaml
 import tqdm
 
+import time
+
 
 from typing import List
 
@@ -32,17 +34,16 @@ def run_graphical(map: grid.Map, agents: List[agent.Base], log_level: str):
                 agent.see(observations)
 
             actions = [a.act() for a in agents]
-            print("ACTIONS DOS 4 DRONES",actions)
             observations, terminal = environment.step(*actions)
             n_steps += 1
             environment.render()
             if terminal:
                 break
 
-            #time.sleep(1)
+            time.sleep(0.25)
     # TODO: util para as metricas 
     #squares_planted = len(environment.final_passengers) - len(environment.passengers)
-    return environment.drones, n_steps #, environment.final_passengers, squares_planted, n_steps
+    return environment.drones, n_steps, terminal #, environment.final_passengers, squares_planted, n_steps
 
 
 def run_not_graphical(map: grid.Map, agents: List[agent.Base], log_level: str):
@@ -53,7 +54,6 @@ def run_not_graphical(map: grid.Map, agents: List[agent.Base], log_level: str):
     running = True
     n_steps = 0
     while running:
-        
         for observations, agent in zip(observations, agents):
             agent.see(observations)
         
@@ -65,7 +65,7 @@ def run_not_graphical(map: grid.Map, agents: List[agent.Base], log_level: str):
         #time.sleep(1)
     #TODO: metricas
     #n_delivered = len(environment.map.) - len(environment.passengers)
-    return environment.drones, n_steps #,n_delivered
+    return environment.drones, n_steps, terminal
 
 def main():
 
@@ -108,17 +108,20 @@ def main():
     
     for _ in iterable:
         if run_with_graphics:
-            drones, n_steps = run_graphical(map, agents, log_level)
+            drones, n_steps, terminal = run_graphical(map, agents, log_level)
             #drones, n_delivered, n_steps = run_graphical(map, agents, log_level)
         else:
             #taxis, passengers, n_delivered, n_steps = run_not_graphical(map, agents, log_level)
-            drones, n_steps = run_not_graphical(map, agents, log_level)
+            drones, n_steps, terminal = run_not_graphical(map, agents, log_level)
 
         # media da distancia percorrida pelos drones
         avg_drone_distance = np.mean([drone.total_distance for drone in drones])
 
         drones_distances.append(avg_drone_distance)
         all_n_steps.append(n_steps)
+
+        if terminal:
+            break
 
     # Stores each run in the following format
     # n_agents, n_passengers, avg_taxi_distance, avg_pick_up_time, avg_drop_off_time, avg_n_steps

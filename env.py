@@ -1,7 +1,8 @@
 import abc
 import dataclasses
 import enum
-import grid
+import grid as grid
+from grid import Map
 import log
 import numpy as np
 import drone as drone
@@ -16,6 +17,10 @@ class Observation:
     """Defines the observation for a given agent.
     
     Attributes:
+        map: each drone has its own map of the environment, updated at each time step
+        drones: list of other drones ??? 
+        --------------------------------------------------
+        TODO
         loc: position of the agent drone in the grid.
         has_seeds: whether the agent drone has a seeds or not. (???)
         energy_levels: how much energy the drone has.
@@ -50,6 +55,18 @@ class Action(enum.Enum):
 
     CHARGE = 6
     """Charges drone's batery."""
+
+    UP_RIGHT = 7
+    """Moves the drone diagonally to the upper right square."""
+
+    UP_LEFT = 8
+    """Moves the drone diagonally to the upper right square."""
+
+    DOWN_RIGHT = 9
+    """Moves the drone down diagonally to the right square."""
+    
+    DOWN_LEFT = 10
+    """Moves the drone down diagonally to the right square."""
 
     def __repr__(self) -> str:
         return f"Action({self.name})"
@@ -103,25 +120,20 @@ class Environment:
 
         # Perform agent actions
         for drone, act in zip(self.drones, actions):
-            if act in (Action.UP, Action.DOWN, Action.LEFT, Action.RIGHT):
+            if act in (Action.UP, Action.DOWN, Action.LEFT, Action.RIGHT, 
+            Action.UP_RIGHT, Action.UP_LEFT, Action.DOWN_RIGHT, Action.DOWN_LEFT):
                 self._move_drone(drone, act)
                 drone.batery_available -= 1
                 drone.total_distance += 1
 
             elif act == Action.PLANT:
-                drone.plant()
-                """
                 p = drone.loc
+                drone.plant()
                 s = self.map.choose_seed(p)
-                print("pos",p)
-                print("cell type before",self.map.grid[p.y, p.x])
                 self.map.change_cell_type(p,s)
-                print("cell type after:",self.map.grid[p.y, p.x])
-                print('change cell type to',s)
                 self.planted_squares.append(tuple([p,s]))
-                """
-
-            
+                    
+                
             elif act == Action.CHARGE:
                 drone.charge()
             
@@ -134,6 +146,9 @@ class Environment:
             log.drone(self._logger,self._timestep, drone)
 
         observation = Observation(map=self.map, drones=self.drones)
+        
+        for d in self.drones:
+            d.map = observation.map
 
         self.terminal = len(self.map.plantable_squares()) == 0 or self._timestep == self._max_timesteps
         
@@ -157,18 +172,10 @@ class Environment:
         self.terminal = False
 
         self.drones = []
-        #self.final_passengers = []
 
         for i in range(self._init_drones):
             self.drones.append(self._create_drone(i))
 
-        '''
-        self.passengers = []
-        for i in range(self._init_passengers):
-            self.passengers.append(self._create_passenger(i))
-
-        self.passengers_travelling = [i for i in range(len(self.passengers))] 
-        '''
 
     def _create_drone(self, id: int) -> drone.Drone:
         """Creates a drone with a random location and direction.
@@ -192,7 +199,12 @@ class Environment:
 
         possible_drone_directions = [drone.Direction.UP,
                                      drone.Direction.DOWN,
-                                     drone.Direction.LEFT, drone.Direction.RIGHT]
+                                     drone.Direction.LEFT, 
+                                     drone.Direction.RIGHT,
+                                     drone.Direction.UP_RIGHT,
+                                     drone.Direction.UP_LEFT,
+                                     drone.Direction.DOWN_RIGHT,
+                                     drone.Direction.DOWN_LEFT]
 
         direction = self._rng.choice(possible_drone_directions)
         temp_drone = drone.Drone(loc=loc,map=self.map, direction=direction, id=id)
@@ -213,11 +225,24 @@ class Environment:
         elif action == Action.LEFT:
             target_loc = drone.loc.left
             target_dir = drone.direction.LEFT
+        elif action == Action.UP_RIGHT:
+            target_loc = drone.loc.up_right
+            target_dir = drone.direction.UP_RIGHT
+        elif action == Action.UP_LEFT:
+            target_loc = drone.loc.up_left
+            target_dir = drone.direction.UP_LEFT
+        elif action == Action.DOWN_RIGHT:
+            target_loc = drone.loc.down_right
+            target_dir = drone.direction.DOWN_RIGHT
+        elif action == Action.DOWN_LEFT:
+            target_loc = drone.loc.down_left
+            target_dir = drone.direction.DOWN_LEFT
         else:
             raise ValueError(f"Unknown direction in drone movement {self.direction}")
         
-        drone.loc = target_loc
-        drone.direction = target_dir
+        if self.map.is_inside_map(target_loc):
+            drone.loc = target_loc
+            drone.direction = target_dir
 
 
 class Printer(abc.ABC):

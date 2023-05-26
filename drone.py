@@ -10,6 +10,10 @@ class Direction(enum.Enum):
     DOWN = 1
     LEFT = 2
     RIGHT = 3
+    UP_RIGHT = 4
+    UP_LEFT = 5
+    DOWN_RIGHT = 6
+    DOWN_LEFT = 7
 
     def __repr__(self) -> str:
         return f"Direction({self.name})"
@@ -84,7 +88,6 @@ class Drone:
         if ( self.loc == grid.Cell.FERTILE_LAND ):
             # menos uma seed
             nr_seeds[0] -= 1
-            print('fertile land')
         else:
-            print('not fertile land')
+            print('not fertile land ',self.loc)
         return None

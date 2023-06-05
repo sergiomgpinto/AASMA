@@ -1,7 +1,7 @@
 import dataclasses
 import enum
+import numpy as np
 import grid as grid
-import chargingstation as chargingstation
 from dataclasses import field
 
 
@@ -32,62 +32,39 @@ class Goal(enum.Enum):
 class Drone:
     loc: grid.Position
     map: grid.Map
-    direction: Direction
 
-    # Id for agent identification
     id: int = 0
-
     nr_seeds: list = field(default_factory=lambda: [100, 100, 100])
-    # nr_seeds: List[int] = [0,0,0] # number of seeds [OAK_TREE,PINE_TREE,EUCALYPTUS] that the drone is currently transporting
-    seed_maxcapacity: list = field(default_factory=lambda: [100, 100, 100])
-    batery_available: int = 0
-    batery_maxcapacity: int = 100
-    goal: Goal = Goal.CHARGE  # iniciam todos com o objetivo de carregar
-
-    # Drone Metrics
+    seed_maxcapacity: list = field(default_factory=lambda: [100, 100, 100])  # [OAK_TREE,PINE_TREE,EUCALYPTUS]
+    batery_available: int = 10
+    batery_maxcapacity: int = 10
     total_distance: int = 0
+    possible_drone_directions: list = field(default_factory=lambda: [
+        Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT,
+        Direction.UP_RIGHT, Direction.UP_LEFT, Direction.DOWN_RIGHT, Direction.DOWN_LEFT])
 
-    # total_energy: int = 0, se para cada quadrado percorrido gastamos 1 de energia n precisamos disto
+    def __post_init__(self):
+        self.direction = np.random.choice(self.possible_drone_directions)
 
-    def charge(self): # , chargingStation: chargingstation.ChargingStation
+    def charge(self):
         """
         Charges batery. Will only have effect if drone is positioned in charging station and if the charging station 
         isn't full.
         """
-        if (self.map.find_charging_station() == self.loc):
-            #if chargingStation.has_enough_capacity:
-            #if self.batery_available < self.batery_maxcapacity:
+        if self.map.find_charging_station() == self.loc:
             self.batery_available = self.batery_maxcapacity
             self.nr_seeds = self.seed_maxcapacity
-            self.goal = Goal.PLANT
-            #else:
-                #self.goal = Goal.WAIT
 
-        return None
 
-    def plant(self):
+    def plant(self, map: grid.Map) -> tuple[bool, grid.Cell]:
         """
         Drone plants fertile land where he is located.
         """
-        '''
-        closest_fertile_land = self.map.choose_adj_fertile_land(self.loc)
-        chosen_seed = self.map.choose_seed(closest_fertile_land)
-        print("SEEDS",self.nr_seeds[int(chosen_seed)])
-        if self.nr_seeds[int(chosen_seed)] != 0:
 
-            plant = self.map.choose_adj_fertile_land(self.loc)
-
-
+        if map.is_fertile_land(self.loc):
+            tree_id = map.get_type_of_tree_that_should_be_planted(self.loc)
+            if self.nr_seeds[tree_id] > 0:
+                self.nr_seeds[tree_id] -= 1
+                return True, map.map_id_to_cell_type(tree_id)
         else:
-            # TODO: Communication Sergio, se o drone não tiver a seed necessária
-            pass
-        '''
-
-        # Pensar o que é que tem de vir para aqui ??
-        # acho que o objetivo é só atualizar os argumentos pq a logica tá no agent 
-        if ( self.loc == grid.Cell.FERTILE_LAND ):
-            # menos uma seed
-            nr_seeds[0] -= 1
-        else:
-            print('not fertile land ',self.loc)
-        return None
+                return False, None

@@ -65,6 +65,8 @@ class EnvironmentPrinter(env.Printer):
                 obstacle_printer.print(pos)
             else:
                 raise ValueError(f"Position not road or sidewalk: {pos}")
+        
+        self._add_colour_to_planted_squares(env)
 
         # Print drones
         drone_printer = DronePrinter(
@@ -74,8 +76,6 @@ class EnvironmentPrinter(env.Printer):
         )
         for d in env.drones:
             drone_printer.print(d)
-        
-        self._add_colour_to_planted_squares(env)
 
         pygame.display.flip()
 
@@ -198,68 +198,6 @@ class DronePrinter(BasePrinter):
         left = d.loc.x * self._cell_width + 0.1 * self._cell_width
         top = d.loc.y * self._cell_height + 0.1 * self._cell_height
 
-        # Por agora a nossa imagem é simétrica mas se metermos um drone com frente e trás isto pode ser util 
-        # por isso é que deixei aqui 
         drone_sprite = pygame.transform.rotate(drone_icon, 0)
-        '''
-        if d.direction == drone.Direction.UP:
-            drone_sprite = pygame.transform.rotate(drone_icon, 0)
 
-        elif d.direction == drone.Direction.DOWN:
-            drone_sprite = pygame.transform.rotate(drone_icon, -180)
-
-        elif d.direction == drone.Direction.LEFT:
-            drone_sprite = pygame.transform.rotate(drone_icon, 90)
-
-        elif d.direction == drone.Direction.RIGHT:
-            drone_sprite = pygame.transform.rotate(drone_icon, -90)
-
-        elif d.direction == drone.Direction.UP_RIGHT:
-            drone_sprite = pygame.transform.rotate(drone_icon, -45)
-        
-        elif d.direction == drone.Direction.UP_LEFT:
-            drone_sprite = pygame.transform.rotate(drone_icon, 45)
-        
-        elif d.direction == drone.Direction.DOWN_RIGHT:
-            drone_sprite = pygame.transform.rotate(drone_icon, 0)
-        
-        elif d.direction == drone.Direction.DOWN_LEFT:
-            drone_sprite = pygame.transform.rotate(drone_icon, 0)
-
-        #if d.has_passenger is not None:
-            # taxi_center = self.get_cell_center(taxi.loc)
-            # px_side = self.get_px_side()
-            #x, y = self.get_upper_left(d.loc)
-
-            #drone_rect = pygame.Rect(x, y, self._cell_width, self._cell_height)
-            #pygame.draw.rect(self._screen, drone_rect)
-
-            # taxi_rect1 = pygame.Rect(taxi_center[0] - (2 * px_side), taxi_center[1] + px_side, 4 * px_side, 4 * px_side)
-            # taxi_rect2 = taxi_rect1.copy().inflate(2 * px_side, -2 * px_side)
-            # taxi_rect3 = taxi_rect1.copy().inflate(-2 * px_side, 2 * px_side)
-            # pygame.draw.rect(self._screen, draw_colour, taxi_rect1)
-            # pygame.draw.rect(self._screen, draw_colour, taxi_rect2)
-            # pygame.draw.rect(self._screen, draw_colour, taxi_rect3)
-        '''
         self._screen.blit(drone_sprite, (left, top))
-
-        # taxi_center = self.get_cell_center(taxi.loc)
-        # draw_text(self._screen, f"{taxi.id}", taxi_center, (0, 0, 0), 18, bold=True)
-        
-
-
-def draw_text(
-        screen: pygame.Surface,
-        text: str,
-        center: Tuple[int, int],
-        color: Tuple[int, int, int],
-        size: int,
-        font: str = "arial",
-        bold: bool = False,
-):
-    font = pygame.font.SysFont(font, size, bold)
-    surf = font.render(text, True, color)
-    rect = surf.get_rect()
-    rect.center = center
-
-    screen.blit(surf, rect)

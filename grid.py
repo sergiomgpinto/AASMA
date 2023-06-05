@@ -69,7 +69,6 @@ class Position:
         return [self.up, self.down, self.left, self.right,
                 self.up_left, self.up_right,
                 self.down_left, self.down_right]
-    
 
 
 class Cell(enum.Enum):
@@ -78,10 +77,8 @@ class Cell(enum.Enum):
     OAK_TREE = 1
     PINE_TREE = 2
     EUCALYPTUS_TREE = 3
-    CHARGING_STATION = 4  # We assume a single charging station by now. Position is also fixed.
-    OBSTACLE = 5  # Represents the houses in the project proposal figure.
-
-    # Did not include a cell yet for the drone since it can be anywhere in the grid. May reconsider.
+    CHARGING_STATION = 4
+    OBSTACLE = 5
 
     def __repr__(self) -> str:
         return f"Cell({self.name})"
@@ -156,10 +153,45 @@ class Map:
         """Returns True if the position is a charging station, False otherwise."""
         return self.grid[p.y, p.x] == Cell.CHARGING_STATION
 
-    # @property
+    def get_type_of_tree_that_should_be_planted(self, p: Position) -> int:
+        """Returns the type of tree in the position."""
+
+        adj_positions = self.adj_positions(p)
+        adj_oak_trees = [adj for adj in adj_positions if self.is_oak_tree(adj)]
+        adj_pine_trees = [adj for adj in adj_positions if self.is_pine_tree(adj)]
+        adj_eucalyptus_trees = [adj for adj in adj_positions if self.is_eucalyptus_tree(adj)]
+
+        tree_lists = {
+            0: adj_oak_trees,
+            1: adj_pine_trees,
+            2: adj_eucalyptus_trees
+        }
+
+        # Get the length of each list
+        tree_counts = {tree_type: len(tree_list) for tree_type, tree_list in tree_lists.items()}
+
+        # Find the tree types with the most trees
+        max_count = max(tree_counts.values())
+        number_of_trees_with_the_same_count = 0
+        for tree_type, count in tree_counts.items():
+            if count == max_count:
+                number_of_trees_with_the_same_count += 1
+
+        max_trees = [tree_type for tree_type, count in tree_counts.items() if count == max_count]
+        if number_of_trees_with_the_same_count > 1:
+            chosen_tree_type = random.choice(max_trees)
+        elif number_of_trees_with_the_same_count == 1:
+            chosen_tree_type = max_trees[0]
+        else:
+            chosen_tree_type = random.choice([0, 1, 2])
+        return chosen_tree_type
+
+    def get_cell_type(self, p: Position) -> Cell:
+        """Returns the type of cell in the position."""
+        return self.grid[p.y, p.x]
+
     def is_inside_map(self, p: Position) -> bool:
         return 0 <= p.y < self.height and 0 <= p.x < self.width
-    
 
     def adj_positions(self, p: Position) -> List[Position]:
         positions = [adj for adj in p.adj if
@@ -203,7 +235,6 @@ class Map:
         """
         self.grid[p.y, p.x] = cell_type
 
-    # TODO: What more behaviour do we need?
     def plantable_squares(self) -> List[Position]:
         """
         Looks at the grid and returns fertile land squares that have not yet
@@ -216,6 +247,19 @@ class Map:
                 plantable_positions.append(p)
         return plantable_positions
 
+    def planted_squares(self) -> List[tuple[Position, Cell]]:
+        """
+        Looks at the grid and returns fertile land squares that have already
+        been planted.
+
+        """
+
+        planted_positions = []
+        for p in self.all_positions:
+            if self.is_oak_tree(p) or self.is_pine_tree(p) or self.is_eucalyptus_tree(p):
+                planted_positions.append((p, self.get_cell_type(p)))
+        return planted_positions
+
     def find_charging_station(self):
         """
         Looks at the grid and returns the position of the charging station
@@ -224,33 +268,14 @@ class Map:
         for p in self.all_positions:
             if self.is_charging_station(p):
                 return p
-        pass
 
-    def choose_adj_fertile_land(self, p: Position):
+    def map_id_to_cell_type(self, id: int) -> Cell:
         """
-        Looks for the closest fertile cell and decides which seed to plant
-        Args:
-            p (Position): Drone Position in the grid
-
-        Returns:
-            Pos: Returns the position of the closest fertile land. 
-                       If there's none return null.
+        Maps an id to a cell type.
         """
-        # FIXME: Add a shuffle
-        fertile_land_nearby = self.adj_positions(p)
-
-        for fertile_land in fertile_land_nearby:
-            return fertile_land
-
-        return None
-
-    # retorna os índices correspondentes ao inventário de seeds dos agentes drones
-    def choose_seed(self, p: Position) -> Cell:
-        if self.has_adj_of_type(p, Cell.OAK_TREE):
+        if id == 0:
             return Cell.OAK_TREE
-        elif self.has_adj_of_type(p, Cell.PINE_TREE):
+        elif id == 1:
             return Cell.PINE_TREE
-        elif self.has_adj_of_type(p, Cell.EUCALYPTUS_TREE):
+        elif id == 2:
             return Cell.EUCALYPTUS_TREE
-        else:
-            return random.choice([Cell.OAK_TREE, Cell.PINE_TREE, Cell.EUCALYPTUS_TREE])

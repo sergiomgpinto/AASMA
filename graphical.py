@@ -1,4 +1,5 @@
 import abc
+import agent
 import env as env
 import grid
 import numpy as np
@@ -9,15 +10,18 @@ from typing import Tuple
 
 class EnvironmentPrinter(env.Printer):
 
-    def __init__(self, local_grid: np.array):
+    def __init__(
+            self,
+            grid: np.array
+    ):
         # Mapping between the passenger Drop-Off location
         # and its colour.
         # self._tree_colours = {}
-        self.grid = local_grid
+        self.grid = grid
         # self._colour_picker = colour.Picker()
 
-    def print(self, local_env: env.Environment):
-        env_grid = local_env.map.grid
+    def print(self, env: env.Environment):
+        env_grid = env.map.grid
         n_cols, n_rows = env_grid.shape
 
         assert self.__height % n_cols == 0, "display height is not divisible by number of columns in grid"
@@ -46,18 +50,18 @@ class EnvironmentPrinter(env.Printer):
             screen=self.__screen, cell_width=cell_width, cell_height=cell_height,
         )
 
-        for pos in local_env.map.all_positions:
-            if local_env.map.is_fertile_land(pos):
+        for pos in env.map.all_positions:
+            if env.map.is_fertile_land(pos):
                 fertile_land_printer.print(pos)
-            elif local_env.map.is_oak_tree(pos):
+            elif env.map.is_oak_tree(pos):
                 oak_tree_printer.print(pos)
-            elif local_env.map.is_pine_tree(pos):
+            elif env.map.is_pine_tree(pos):
                 pine_tree_printer.print(pos)
-            elif local_env.map.is_eucalyptus_tree(pos):
+            elif env.map.is_eucalyptus_tree(pos):
                 eucalyptus_tree_printer.print(pos)
-            elif local_env.map.is_charging_station(pos):
+            elif env.map.is_charging_station(pos):
                 charging_station_printer.print(pos)
-            elif local_env.map.is_obstacle(pos):
+            elif env.map.is_obstacle(pos):
                 obstacle_printer.print(pos)
             else:
                 raise ValueError(f"Position not road or sidewalk: {pos}")
@@ -68,17 +72,18 @@ class EnvironmentPrinter(env.Printer):
             cell_width=cell_width,
             cell_height=cell_height,
         )
-        for d in local_env.drones:
+        for d in env.drones:
             drone_printer.print(d)
-
-        self._add_colour_to_planted_squares(local_env)
+        
+        self._add_colour_to_planted_squares(env)
 
         pygame.display.flip()
 
-    def _add_colour_to_planted_squares(self, local_env: env.Environment):
-
-        planted_squares = local_env.planted_squares
-        env_grid = local_env.map.grid
+    
+    def _add_colour_to_planted_squares(self, env: env.Environment):
+        
+        planted_squares = env.planted_squares
+        env_grid = env.map.grid
         n_cols, n_rows = env_grid.shape
 
         assert self.__height % n_cols == 0, "display height is not divisible by number of columns in grid"
@@ -90,14 +95,15 @@ class EnvironmentPrinter(env.Printer):
         for tuples in planted_squares:
             pos = tuples[0]
             cell_type = tuples[1]
-            if cell_type == grid.Cell.OAK_TREE:
-                OakTreePrinter(screen=self.__screen, cell_width=cell_width, cell_height=cell_height, ).print(pos)
-            if cell_type == grid.Cell.PINE_TREE:
-                PineTreePrinter(screen=self.__screen, cell_width=cell_width, cell_height=cell_height, ).print(pos)
-            if cell_type == grid.Cell.EUCALYPTUS_TREE:
-                EucalyptusTreePrinter(screen=self.__screen, cell_width=cell_width, cell_height=cell_height, ).print(pos)
-
+            if cell_type == grid.Cell.OAK_TREE: 
+                OakTreePrinter(screen=self.__screen, cell_width=cell_width, cell_height=cell_height,).print(pos)
+            if cell_type == grid.Cell.PINE_TREE: 
+                PineTreePrinter(screen=self.__screen, cell_width=cell_width, cell_height=cell_height,).print(pos)
+            if cell_type == grid.Cell.EUCALYPTUS_TREE: 
+                EucalyptusTreePrinter(screen=self.__screen, cell_width=cell_width, cell_height=cell_height,).print(pos)
+        
         return None
+    
 
     def __enter__(self):
         pygame.init()
@@ -194,6 +200,8 @@ class DronePrinter(BasePrinter):
 
         # Por agora a nossa imagem é simétrica mas se metermos um drone com frente e trás isto pode ser util 
         # por isso é que deixei aqui 
+        drone_sprite = pygame.transform.rotate(drone_icon, 0)
+        '''
         if d.direction == drone.Direction.UP:
             drone_sprite = pygame.transform.rotate(drone_icon, 0)
 
@@ -205,28 +213,39 @@ class DronePrinter(BasePrinter):
 
         elif d.direction == drone.Direction.RIGHT:
             drone_sprite = pygame.transform.rotate(drone_icon, -90)
-        else:
-            raise ValueError(f"Invalid direction: {d.direction}")
 
-        # if d.has_passenger is not None:
-        # taxi_center = self.get_cell_center(taxi.loc)
-        # px_side = self.get_px_side()
-        # x, y = self.get_upper_left(d.loc)
+        elif d.direction == drone.Direction.UP_RIGHT:
+            drone_sprite = pygame.transform.rotate(drone_icon, -45)
+        
+        elif d.direction == drone.Direction.UP_LEFT:
+            drone_sprite = pygame.transform.rotate(drone_icon, 45)
+        
+        elif d.direction == drone.Direction.DOWN_RIGHT:
+            drone_sprite = pygame.transform.rotate(drone_icon, 0)
+        
+        elif d.direction == drone.Direction.DOWN_LEFT:
+            drone_sprite = pygame.transform.rotate(drone_icon, 0)
 
-        # drone_rect = pygame.Rect(x, y, self._cell_width, self._cell_height)
-        # pygame.draw.rect(self._screen, drone_rect)
+        #if d.has_passenger is not None:
+            # taxi_center = self.get_cell_center(taxi.loc)
+            # px_side = self.get_px_side()
+            #x, y = self.get_upper_left(d.loc)
 
-        # taxi_rect1 = pygame.Rect(taxi_center[0] - (2 * px_side), taxi_center[1] + px_side, 4 * px_side, 4 * px_side)
-        # taxi_rect2 = taxi_rect1.copy().inflate(2 * px_side, -2 * px_side)
-        # taxi_rect3 = taxi_rect1.copy().inflate(-2 * px_side, 2 * px_side)
-        # pygame.draw.rect(self._screen, draw_colour, taxi_rect1)
-        # pygame.draw.rect(self._screen, draw_colour, taxi_rect2)
-        # pygame.draw.rect(self._screen, draw_colour, taxi_rect3)
+            #drone_rect = pygame.Rect(x, y, self._cell_width, self._cell_height)
+            #pygame.draw.rect(self._screen, drone_rect)
 
+            # taxi_rect1 = pygame.Rect(taxi_center[0] - (2 * px_side), taxi_center[1] + px_side, 4 * px_side, 4 * px_side)
+            # taxi_rect2 = taxi_rect1.copy().inflate(2 * px_side, -2 * px_side)
+            # taxi_rect3 = taxi_rect1.copy().inflate(-2 * px_side, 2 * px_side)
+            # pygame.draw.rect(self._screen, draw_colour, taxi_rect1)
+            # pygame.draw.rect(self._screen, draw_colour, taxi_rect2)
+            # pygame.draw.rect(self._screen, draw_colour, taxi_rect3)
+        '''
         self._screen.blit(drone_sprite, (left, top))
 
         # taxi_center = self.get_cell_center(taxi.loc)
         # draw_text(self._screen, f"{taxi.id}", taxi_center, (0, 0, 0), 18, bold=True)
+        
 
 
 def draw_text(

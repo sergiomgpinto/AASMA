@@ -1,0 +1,24 @@
+%YAML 1.2
+---
+
+n_runs: 100
+
+graphical: True
+
+log_level: warn
+
+agent_type: Random
+
+map_size: 5
+
+max_number_of_seeds: 10
+
+max_battery_capacity: 100
+
+Random:
+  nr_charging_stations: 1
+  nr_agents: 2
+
+PathPlanner:
+  nr_charging_stations: 1
+  nr_agents: 10

@@ -75,6 +75,7 @@ class Environment:
 
     def __init__(self, map: grid.Map, init_drones: int, printer: "Optional[Printer]" = None,
                  log_level: Optional[str] = "info", max_timesteps: Optional[int] = 150, seed: Optional[int] = None):
+        self.all_drones_dead = None
         self._timestep = None
         self.terminal = None
         self.map = map
@@ -86,21 +87,21 @@ class Environment:
         self._max_timesteps = max_timesteps
         self.occupied_squares_with_drones = []
 
-    def reset(self) -> List[Observation]:
+    def reset(self, max_number_of_seeds, max_battery_available) -> List[Observation]:
         self._timestep = 0
         self.terminal = False
         self.occupied_squares_with_drones = []
         self.drones = []
 
         for i in range(self._init_drones):
-            self.drones.append(self.create_drone(i))
+            self.drones.append(self.create_drone(i, max_number_of_seeds, max_battery_available))
         observation = Observation(map=self.map, drones=self.drones)
         return [observation for _ in range(len(self.drones))]
 
     def render(self):
         self._printer.print(self)
 
-    def create_drone(self, id: int) -> drone.Drone:
+    def create_drone(self, id: int, max_number_of_seeds: int, max_battery_available: int) -> drone.Drone:
         """Creates a drone with a random location and direction.
         
         The drone initial location will not overlap with another drone."""
@@ -109,7 +110,8 @@ class Environment:
                                     if l not in self.occupied_squares_with_drones]
         loc = self._rng.choice(possible_drone_locations)
         self.occupied_squares_with_drones.append(loc)
-        temp_drone = drone.Drone(loc=loc, map=self.map, id=id)
+        temp_drone = drone.Drone(loc=loc, map=self.map, id=id, max_number_of_seeds=max_number_of_seeds,
+                                    max_battery_available=max_battery_available)
         log.create_drone(self._logger, self._timestep, temp_drone)
         return temp_drone
 
@@ -147,7 +149,7 @@ class Environment:
             drone.loc = target_loc
             drone.direction = target_dir
 
-    def step(self, actions: List[Action]) -> tuple[list[Observation], bool | Any]:
+    def step(self, actions: List[Action]) -> tuple[list[Observation], bool, bool | Any]:
         """Performs an environment step.
 
         Args:
@@ -163,7 +165,7 @@ class Environment:
 
         # Perform agent actions
         for drone, act in zip(self.drones, actions):
-            if drone.batery_available != 0:
+            if drone.battery_available != 0:
                 if act in (Action.UP, Action.DOWN, Action.LEFT, Action.RIGHT,
                            Action.UP_RIGHT, Action.UP_LEFT, Action.DOWN_RIGHT, Action.DOWN_LEFT):
                     self.move_drone(drone, act)
@@ -179,8 +181,10 @@ class Environment:
 
                 elif act == Action.STAY:
                     pass
-                drone.batery_available -= 1
+                drone.battery_available -= 1
                 drone.total_distance += 1
+            else:
+                drone.is_dead = True
             log.drone(self._logger, self._timestep, drone)
 
         observation = Observation(map=self.map, drones=self.drones)
@@ -188,9 +192,11 @@ class Environment:
         for d in self.drones:
             d.map = observation.map
 
-        self.terminal = len(self.map.plantable_squares()) == 0 or self._timestep == self._max_timesteps
-
-        return [observation for _ in range(len(actions))], self.terminal
+        self.terminal = len(self.map.plantable_squares()) == 0
+        self.all_drones_dead = all([d.is_dead for d in self.drones])
+        #self.percentage_of_planted_trees =
+        return [observation for _ in range(len(actions))], self.terminal, self.all_drones_dead #\
+               #self.percentage_of_planted_trees
 
 
 class Printer(abc.ABC):

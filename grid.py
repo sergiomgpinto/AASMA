@@ -88,7 +88,13 @@ class Map:
     """Represents the combination of the grid with the cell values."""
 
     def __init__(self, grid: np.ndarray):
+        # i want initial_grid to be a copy of the grid input
+        self.initial_grid = grid
+        self.initial_number_of_plantable_squares = np.count_nonzero(self.initial_grid == Cell.FERTILE_LAND)
         self.grid = grid
+
+    def reset(self):
+        self.grid = self.initial_grid
 
     @property
     def height(self):
@@ -132,6 +138,10 @@ class Map:
     def is_fertile_land(self, p: Position) -> bool:
         """Returns True if the position is fertile land, False otherwise."""
         return self.grid[p.y, p.x] == Cell.FERTILE_LAND
+
+    def is_initially_fertile_land(self, p: Position) -> bool:
+        """Returns True if the position is fertile land, False otherwise."""
+        return self.initial_grid[p.y, p.x] == Cell.FERTILE_LAND
 
     def is_tree(self, p: Position) -> bool:
         """Returns True if the position is a tree, False otherwise."""
@@ -279,3 +289,14 @@ class Map:
             return Cell.PINE_TREE
         elif id == 2:
             return Cell.EUCALYPTUS_TREE
+
+    def number_of_planted_squares(self) -> int:
+        """
+        Returns the number of planted squares.
+        """
+        number_of_planted_squares = 0
+        for p in self.all_positions:
+            if self.is_initially_fertile_land(p):
+                if self.is_oak_tree(p) or self.is_pine_tree(p) or self.is_eucalyptus_tree(p):
+                    number_of_planted_squares += 1
+        return number_of_planted_squares

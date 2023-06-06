@@ -1,5 +1,6 @@
 import numpy as np
 from grid import Cell
+import yaml
 
 
 class Map:
@@ -12,7 +13,7 @@ class Map:
         5: Cell.OBSTACLE
     }
 
-    def __init__(self, size=7):
+    def __init__(self, size):
         self.integer_map = np.random.choice([0, 1, 2, 3, 5], (size, size))
 
         station_x = np.random.randint(size)
@@ -25,4 +26,7 @@ class Map:
         self.MAP = self.vectorized_mapping(self.integer_map)
 
 
-MAP = Map().MAP
+with open("./config.yml", "r") as fp:
+    data = yaml.safe_load(fp)
+
+MAP = Map(data["map_size"]).MAP

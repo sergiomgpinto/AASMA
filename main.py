@@ -3,7 +3,6 @@ import env
 import grid
 import default
 import graphical
-
 import numpy as np
 import pygame
 import yaml
@@ -14,10 +13,11 @@ import time
 from typing import List
 
 
-def run_graphical(map: grid.Map, agents: List[agent.Base], log_level: str):
-    with graphical.EnvironmentPrinter(map.grid) as printer:
-        environment = env.Environment(map=map, init_drones=len(agents), printer=printer, log_level=log_level,)
-        observations = environment.reset()
+def run_graphical(map: grid.Map, agents: List[agent.Base], log_level: str, max_number_of_seeds: int, max_battery_capacity: int):
+    with graphical.EnvironmentPrinter(map.initial_grid) as printer:
+        map.reset()
+        environment = env.Environment(map=map, init_drones=len(agents), printer=printer, log_level=log_level)
+        observations = environment.reset(max_number_of_seeds, max_battery_capacity)
         environment.render()
         running = True
         n_steps = 0
@@ -31,18 +31,81 @@ def run_graphical(map: grid.Map, agents: List[agent.Base], log_level: str):
                 agent.see(observations)
 
             actions = [a.choose_action() for a in agents]
-            observations, terminal = environment.step(actions)
+            observations, terminal, all_drones_dead = environment.step(actions)
 
             n_steps += 1
             environment.render()
             if terminal:
                 break
+            if all_drones_dead:
+                break
 
             time.sleep(0.25)
-    # TODO: util para as metricas
-    return environment.drones, n_steps, terminal  # , environment.final_passengers, squares_planted, n_steps
+        print(map.number_of_planted_squares())
+        print(map.initial_number_of_plantable_squares)
+        percentage_of_planted_squares = map.number_of_planted_squares() / map.initial_number_of_plantable_squares
+    return environment.drones, n_steps, terminal, all_drones_dead, percentage_of_planted_squares
 
 
+def main():
+    with open("./config.yml", "r") as fp:
+        data = yaml.safe_load(fp)
+
+    drones_distances = []
+    all_n_steps = []
+    number_of_dead_drones = []
+    percentage_of_planted_trees = []
+    num_charging_stations = data[data["agent_type"]]["nr_charging_stations"]
+    max_number_of_seeds = data["max_number_of_seeds"]
+    max_battery_capacity = data["max_battery_capacity"]
+    num_agents = data[data["agent_type"]]["nr_agents"]
+    map = grid.Map(default.MAP)
+    run_with_graphics = data["graphical"]
+    log_level = data["log_level"]
+    n_runs = data["n_runs"]
+    all_drones_dead = False
+    terminal = False
+    n_steps = 0
+    percentage_of_planted_squares = 0.0
+    percentage_of_planted_trees = []
+    agents = []
+    drones = []
+
+    if data["agent_type"] == "Random":
+        agents = [agent.Random(agent_id=i) for i in range(num_agents)]
+
+    if run_with_graphics:
+        iterable = range(n_runs)
+    else:
+        iterable = tqdm.tqdm(range(n_runs))
+
+    for _ in iterable:
+        if run_with_graphics:
+            drones, n_steps, terminal, all_drones_dead, percentage_of_planted_squares = run_graphical(map, agents, log_level, max_number_of_seeds, max_battery_capacity)
+
+        avg_drone_distance = np.mean([drone.total_distance for drone in drones])
+        drones_distances.append(avg_drone_distance)
+        all_n_steps.append(n_steps)
+        number_of_dead_drones.append(len([drone for drone in drones if drone.is_dead]))
+        percentage_of_planted_trees.append(percentage_of_planted_squares)
+
+        if all_drones_dead:
+            all_drones_dead = False
+            continue
+        if terminal:
+            break
+
+    with open(f"metrics-{data['agent_type']}-agents-{num_agents}.csv", "w") as metrics:
+        metrics.write(
+            "Percentage of planted squares, Number of drones that died, Drones average distance traveled, Number of steps to complete the map\n")
+        for a, b, c, d in zip( percentage_of_planted_trees, number_of_dead_drones, drones_distances, all_n_steps):
+            metrics.write(f"{a}, {b}, {c}, {d}\n")
+
+
+if __name__ == "__main__":
+    main()
+
+'''
 def run_not_graphical(map: grid.Map, agents: List[agent.Base], log_level: str):
     environment = env.Environment(map=map, init_drones=len(agents), log_level=log_level)
 
@@ -60,51 +123,4 @@ def run_not_graphical(map: grid.Map, agents: List[agent.Base], log_level: str):
             break
     # TODO: metricas
     return environment.drones, n_steps, terminal
-
-
-def main():
-    with open("./config.yml", "r") as fp:
-        data = yaml.safe_load(fp)
-
-    drones_distances = []
-    all_n_steps = []
-    num_charging_stations = data[data["agent_type"]]["nr_charging_stations"]
-    num_agents = data[data["agent_type"]]["nr_agents"]
-    map = grid.Map(default.MAP)
-    run_with_graphics = data["graphical"]
-    log_level = data["log_level"]
-    n_runs = data["n_runs"]
-
-    if data["agent_type"] == "Random":
-        agents = [agent.Random(agent_id=i) for i in range(num_agents)]
-
-    if run_with_graphics:
-        iterable = range(n_runs)
-    else:
-        iterable = tqdm.tqdm(range(n_runs))
-
-    for _ in iterable:
-        if run_with_graphics:
-            drones, n_steps, terminal = run_graphical(map, agents, log_level)
-        else:
-            drones, n_steps, terminal = run_not_graphical(map, agents, log_level)
-
-        # media da distancia percorrida pelos drones
-        avg_drone_distance = np.mean([drone.total_distance for drone in drones])
-
-        drones_distances.append(avg_drone_distance)
-        all_n_steps.append(n_steps)
-
-        if terminal:
-            break
-
-    # Stores each run in the following format
-    # n_agents, n_passengers, avg_taxi_distance, avg_pick_up_time, avg_drop_off_time, avg_n_steps
-    with open(f"metrics-{data['agent_type']}-agents-{num_agents}.csv", "w") as metrics:
-        metrics.write("drone_distance,n_steps\n")
-        for d, n in zip(drones_distances, all_n_steps):
-            metrics.write(f"{d},{n}\n")
-
-
-if __name__ == "__main__":
-    main()
+'''

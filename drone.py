@@ -32,19 +32,20 @@ class Goal(enum.Enum):
 class Drone:
     loc: grid.Position
     map: grid.Map
+    id: int
+    max_battery_available: int
+    max_number_of_seeds: int
 
-    id: int = 0
-    nr_seeds: list = field(default_factory=lambda: [100, 100, 100])
-    seed_maxcapacity: list = field(default_factory=lambda: [100, 100, 100])  # [OAK_TREE,PINE_TREE,EUCALYPTUS]
-    batery_available: int = 10
-    batery_maxcapacity: int = 10
+    nr_seeds: list = field(default_factory=lambda: [100, 100, 100]) # [OAK_TREE,PINE_TREE,EUCALYPTUS]
     total_distance: int = 0
     possible_drone_directions: list = field(default_factory=lambda: [
         Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT,
         Direction.UP_RIGHT, Direction.UP_LEFT, Direction.DOWN_RIGHT, Direction.DOWN_LEFT])
+    is_dead: bool = False
 
     def __post_init__(self):
         self.direction = np.random.choice(self.possible_drone_directions)
+        self.battery_available = self.max_battery_available
 
     def charge(self):
         """
@@ -52,9 +53,8 @@ class Drone:
         isn't full.
         """
         if self.map.find_charging_station() == self.loc:
-            self.batery_available = self.batery_maxcapacity
-            self.nr_seeds = self.seed_maxcapacity
-
+            self.battery_available = self.max_battery_available
+            self.nr_seeds = [self.max_number_of_seeds, self.max_number_of_seeds, self.max_number_of_seeds]
 
     def plant(self, map: grid.Map) -> tuple[bool, grid.Cell]:
         """
@@ -67,4 +67,4 @@ class Drone:
                 self.nr_seeds[tree_id] -= 1
                 return True, map.map_id_to_cell_type(tree_id)
         else:
-                return False, None
+            return False, None

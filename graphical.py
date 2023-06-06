@@ -192,7 +192,11 @@ class DronePrinter(BasePrinter):
 
     def print(self, d: drone.Drone):
 
-        drone_icon = pygame.transform.scale(pygame.image.load("Images/Drone.png"),
+        if d.is_dead:
+            drone_icon = pygame.transform.scale(pygame.image.load("Images/coffin.png"),
+                                            (0.8 * self._cell_width, 0.8 * self._cell_height))
+        else:
+            drone_icon = pygame.transform.scale(pygame.image.load("Images/Drone.png"),
                                             (0.8 * self._cell_width, 0.8 * self._cell_height))
 
         left = d.loc.x * self._cell_width + 0.1 * self._cell_width

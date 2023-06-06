@@ -71,7 +71,7 @@ class Action(enum.Enum):
 @dataclasses.dataclass
 class Environment:
     drones: List[drone.Drone]
-    chargingstations: chargingstation.ChargingStation
+    #chargingstations: chargingstation.ChargingStation
 
     def __init__(self, map: grid.Map, init_drones: int, printer: "Optional[Printer]" = None,
                  log_level: Optional[str] = "info", max_timesteps: Optional[int] = 150, seed: Optional[int] = None):
@@ -111,7 +111,9 @@ class Environment:
         loc = self._rng.choice(possible_drone_locations)
         self.occupied_squares_with_drones.append(loc)
         temp_drone = drone.Drone(loc=loc, map=self.map, id=id, max_number_of_seeds=max_number_of_seeds,
-                                    max_battery_available=max_battery_available)
+                                 max_battery_available=max_battery_available, distance_between_fertile_lands=0,
+                                 distance_needed_to_identify_fertile_land=list(), energy_per_planted_tree=list())
+
         log.create_drone(self._logger, self._timestep, temp_drone)
         return temp_drone
 
@@ -183,6 +185,9 @@ class Environment:
                     pass
                 drone.battery_available -= 1
                 drone.total_distance += 1
+                drone.distance_between_fertile_lands += 1
+                drone.energy_used_before_planted_tree += 1
+                drone.update_distance_needed_to_identify_fertile_land(self.map)
             else:
                 drone.is_dead = True
             log.drone(self._logger, self._timestep, drone)
@@ -194,9 +199,22 @@ class Environment:
 
         self.terminal = len(self.map.plantable_squares()) == 0
         self.all_drones_dead = all([d.is_dead for d in self.drones])
-        #self.percentage_of_planted_trees =
-        return [observation for _ in range(len(actions))], self.terminal, self.all_drones_dead #\
-               #self.percentage_of_planted_trees
+        return [observation for _ in range(len(actions))], self.terminal, self.all_drones_dead
+
+    def get_avg_distance_needed_to_identify_fertile_land(self):
+        distances = []
+        for d in self.drones:
+            if len(d.distance_needed_to_identify_fertile_land) != 0:
+                distances.append(np.mean(d.distance_needed_to_identify_fertile_land))
+        return np.mean(distances)
+
+    def get_avg_energy_used_per_planted_tree(self):
+        distances = []
+        for d in self.drones:
+            if d.get_avg_of_drone_energy_used_per_planted_tree() != -1:
+                distances.append(d.get_avg_of_drone_energy_used_per_planted_tree())
+        return np.mean(distances)
+
 
 
 class Printer(abc.ABC):

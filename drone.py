@@ -35,7 +35,11 @@ class Drone:
     id: int
     max_battery_available: int
     max_number_of_seeds: int
+    distance_between_fertile_lands: int
+    distance_needed_to_identify_fertile_land: list
+    energy_per_planted_tree : list
 
+    energy_used_before_planted_tree: int = 0
     nr_seeds: list = field(default_factory=lambda: [100, 100, 100]) # [OAK_TREE,PINE_TREE,EUCALYPTUS]
     total_distance: int = 0
     possible_drone_directions: list = field(default_factory=lambda: [
@@ -65,6 +69,21 @@ class Drone:
             tree_id = map.get_type_of_tree_that_should_be_planted(self.loc)
             if self.nr_seeds[tree_id] > 0:
                 self.nr_seeds[tree_id] -= 1
+                self.energy_per_planted_tree.append(self.energy_used_before_planted_tree)
+                self.energy_used_before_planted_tree = 0
                 return True, map.map_id_to_cell_type(tree_id)
         else:
             return False, None
+
+    def update_distance_needed_to_identify_fertile_land(self, map: grid.Map):
+
+        if map.is_fertile_land(self.loc):
+            self.distance_needed_to_identify_fertile_land.append(self.distance_between_fertile_lands)
+            self.distance_between_fertile_lands = 0
+
+    def get_avg_of_drone_energy_used_per_planted_tree(self):
+        if len(self.energy_per_planted_tree) != 0:
+            return np.mean(self.energy_per_planted_tree)
+        else:
+            return -1
+

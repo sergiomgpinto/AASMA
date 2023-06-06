@@ -89,12 +89,12 @@ class Map:
 
     def __init__(self, grid: np.ndarray):
         # i want initial_grid to be a copy of the grid input
-        self.initial_grid = grid
+        self.initial_grid = np.copy(grid)
         self.initial_number_of_plantable_squares = np.count_nonzero(self.initial_grid == Cell.FERTILE_LAND)
-        self.grid = grid
+        self.grid = np.copy(grid)
 
     def reset(self):
-        self.grid = self.initial_grid
+        self.grid = np.copy(self.initial_grid)
 
     @property
     def height(self):

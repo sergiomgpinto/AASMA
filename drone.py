@@ -57,7 +57,7 @@ class Action(enum.Enum):
 class Drone:
 
     def __init__(self, loc, id, max_number_of_seeds, max_battery_available, distance_between_fertile_lands,
-                 distance_needed_to_identify_fertile_land, energy_per_planted_tree):
+                 distance_needed_to_identify_fertile_land, energy_per_planted_tree, charging_station_loc):
 
         self.loc = loc
         self.id = id
@@ -79,9 +79,19 @@ class Drone:
             data = yaml.safe_load(fp)
 
         self.map = Map(np.full((data["map_size"], data["map_size"]), Cell.UNKNOWN))
+        self.charging_station = charging_station_loc
 
     def set_dead(self):
         self.is_dead = True
+
+    def get_loc(self):
+        return self.loc
+
+    def get_map(self):
+        return self.map
+
+    def get_charging_station(self):
+        return self.charging_station
 
     def is_drone_dead(self):
         return self.is_dead

@@ -12,7 +12,7 @@ from grid import Map
 from default import MAP
 
 
-def run_graphical(map: Map, agents: list[Agent], drones: list[Drone], agent_type: str) -> tuple[int, bool, bool | Any, float | Any, Any, Any]:
+def run_graphical(map: Map, agents: list[Agent], drones: list[Drone]) -> tuple[int, bool, bool | Any, float | Any, Any, Any]:
     with EnvironmentPrinter(map.get_initial_grid()) as printer:
         environment = Environment(printer, map)
 
@@ -22,6 +22,7 @@ def run_graphical(map: Map, agents: list[Agent], drones: list[Drone], agent_type
         terminal = False
         all_drones_dead = False
         n_steps = 0
+        actions = []
 
         while running:
             for event in pygame.event.get():
@@ -31,19 +32,8 @@ def run_graphical(map: Map, agents: list[Agent], drones: list[Drone], agent_type
             for agent in agents:
                 agent.see(map)
 
-            if agent_type == "Random": 
-                actions = [agent.choose_action() for agent in agents]
-            elif agent_type == "GreedyAgent":
-                print('GreedyAgent')
-                actions = []
-                for a,d in zip(agents,drones):
-                    print('a',a)
-                    print('d',d)
-                    action = agent.choose_action(d)
-                    print('action',action)
-                    actions.append(action)
+            actions = [agent.choose_action() for agent in agents]
 
-            print('actions',actions)
             terminal = environment.step(actions, drones)
             all_drones_dead = all([drone.is_drone_dead() for drone in drones])
 
@@ -109,7 +99,7 @@ def main():
         if run_with_graphics:
             print('here')
             n_steps, terminal, all_drones_dead, percentage_of_planted_squares, avg_distance_needed_to_fertile_land, avg_energy_used_per_planted_tree = \
-                run_graphical(map, agents, drones, data["agent_type"])
+                run_graphical(map, agents, drones)
         
         print('saiu')
 

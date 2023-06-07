@@ -1,54 +1,29 @@
-class Communication:
-    def __init__(self):
-        self.protocol = None
-
-
 class Message:
-    def __init__(self):
-        self.sender = None
-        self.receiver = None
-        self.content = None
+    def __init__(self, sender_id: int, receiver_id: int):
+        self.sender_id = sender_id
+        self.receiver_id = receiver_id
+        self.payload = payload
 
-    def set_sender(self, sender):
-        self.sender = sender
+    def get_content(self):
+        return self.payload
 
-    def set_receiver(self, receiver):
-        self.receiver = receiver
-
-    def set_content(self, content):
-        self.content = content
+    def get_sender(self) -> int:
+        return self.sender_id
 
 
-class Protocol:
-    def __init__(self):
-        self.name = None
-        self.message = None
+class MapUpdateMessage(Message):
+    def __init__(self, sender_id: int, receiver_id: int, map_subset: np.array):
+        super().__init__(sender_id, receiver_id)
+        self.map_subset = map_subset
 
-    def set_name(self, name):
-        self.name = name
-
-    def set_message(self, message):
-        self.message = message
-
-    def send(self):
-        raise NotImplementedError()
-
-    def receive(self):
-        raise NotImplementedError()
-
-    def broadcast(self):
-        raise NotImplementedError()
+    def get_map_subset(self) -> np.array:
+        return self.map_subset
 
 
-class MessageQueue:
-    def __init__(self):
-        self.queue = []
+class EnergyAndSeedLevelsStatusMessage(Message):
+    def __init__(self, sender_id: int, receiver_id: int, status: Tuple[int, int]):
+        super().__init__(sender_id, receiver_id)
+        self.status = status
 
-    def add_message(self, message):
-        self.queue.append(message)
-
-    def get_message(self):
-        return self.queue.pop(0)
-
-    def is_empty(self):
-        return len(self.queue) == 0
+    def get_status(self) -> Tuple[int, int]:
+        return self.status

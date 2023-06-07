@@ -157,4 +157,7 @@ class Drone:
             return -1
 
     def update_map(self, observation):
-        pass
+        adj_positions = observation.get_adj_locations()
+        cell_types = observation.get_adj_cell_types()
+        for i in range(len(adj_positions)):
+            self.map.update_position(adj_positions[i], cell_types[i])

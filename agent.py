@@ -21,6 +21,21 @@ class RandomObservation(Observation):
         self.current_seeds = drone.nr_seeds
         self.adj_cell_types = [map.get_cell_type(loc) for loc in self.adj_locations]
 
+    def get_adj_locations(self):
+        return self.adj_locations
+
+    def get_current_energy(self):
+        return self.current_energy
+
+    def get_current_loc(self):
+        return self.current_loc
+
+    def get_current_seeds(self):
+        return self.current_seeds
+
+    def get_adj_cell_types(self):
+        return self.adj_cell_types
+
 
 class Agent(abc.ABC):
     """Base class for all agents."""

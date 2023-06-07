@@ -310,3 +310,9 @@ class Map:
                 if self.is_oak_tree(p) or self.is_pine_tree(p) or self.is_eucalyptus_tree(p):
                     number_of_planted_squares += 1
         return number_of_planted_squares
+
+    def update_position(self, p: Position, cell_type: Cell):
+        """
+        Updates the position p in the grid to the cell type.
+        """
+        self.grid[p.y, p.x] = cell_type

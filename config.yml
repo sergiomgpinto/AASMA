@@ -7,9 +7,9 @@ graphical: True
 
 log_level: warn
 
-agent_type: Random
+agent_type: GreedyAgent #Random GreedyAgent
 
-map_size: 5
+map_size: 10
 
 max_number_of_seeds: 10
 
@@ -19,6 +19,6 @@ Random:
   nr_charging_stations: 1
   nr_agents: 2
 
-PathPlanner:
+GreedyAgent:
   nr_charging_stations: 1
-  nr_agents: 10
+  nr_agents: 5

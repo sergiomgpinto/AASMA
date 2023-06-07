@@ -4,6 +4,7 @@ from abc import ABC
 import numpy as np
 from grid import Map, Position
 from drone import Drone, Action, Goal
+import env as env
 
 
 @dataclasses.dataclass
@@ -79,7 +80,7 @@ class RandomAgent(Agent):
         self.drone = self.create_drone(self._agent_id, self.drone.max_number_of_seeds, self.drone.max_battery_available, self.drone.map)
 
 
-'''
+
 class EnergyBased(Agent, ABC):
     """Utility class with path based functions."""
 
@@ -130,8 +131,6 @@ class PathBased(EnergyBased, ABC):
         charging_station_pos = agent_drone.map.find_charging_station()  # TODO find_closest no caso de querermos ter várias estações ativas
         shortest_path = self._bfs_with_positions(agent_drone.map, agent_drone.loc, charging_station_pos)
         action = self._move_in_path_and_act(agent_drone, shortest_path, Action.CHARGE, Goal.CHARGE)
-        if action == Action.CHARGE:
-            if charging_station_max_capacity == charging_station_
         return action
 
     def _move_in_path_and_act(self, agent_drone: Drone, path: list[Position], last_action: env.Action,
@@ -165,7 +164,7 @@ class PathBased(EnergyBased, ABC):
         elif next_pos == curr_pos.down_right:
             return Action.DOWN_RIGHT
         elif next_pos == curr_pos.down_left:
-            return Action.DOWN_LEFT
+            return Action.DOWN_LEFT 
         else:
             raise ValueError(
                 f"Unknown adj direction: (curr_pos: {curr_pos}, next_pos: {next_pos})"
@@ -199,14 +198,20 @@ class PathBased(EnergyBased, ABC):
 class GreedyAgent(PathBased):
     """Agent that plans its path using a BFS."""
 
-    def __init__(self, agent_id: int = 0) -> None:
-        super().__init__(agent_id)
-        self._agent_id = agent_id
+    def __init__(self, agent_id: int, max_number_of_seeds: int, max_battery_available: int, map: Map) -> None:
+        super().__init__(agent_id, max_number_of_seeds, max_battery_available, map)
+
+    def see(self, map: Map) -> None:
+        self.last_observation = RandomObservation(map, self.drone)
+        self.drone.update_map(self.last_observation)
 
     def choose_action(self, agent_drone: Drone) -> Action:
+        print('choose action')
 
         # Conditions in which the drone needs to go to charging station ???
         # deviamos adicionar uma função reutilizavel para isto
+        print('bfs',self._bfs_with_positions(agent_drone.map, agent_drone.loc, agent_drone.map.
+                                                              find_charging_station()))
         distance_drone_station = len(self._bfs_with_positions(agent_drone.map, agent_drone.loc, agent_drone.map.
                                                               find_charging_station()))
 
@@ -218,4 +223,7 @@ class GreedyAgent(PathBased):
             return self._go_to_charging_station(agent_drone)
         else:
             print("go plant")
-            return self._plant_nearest_square(agent_drone)'''''
+            return self._plant_nearest_square(agent_drone)
+    
+    def reset(self):
+        self.drone = self.create_drone(self._agent_id, self.drone.max_number_of_seeds, self.drone.max_battery_available, self.drone.map)

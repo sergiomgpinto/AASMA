@@ -46,6 +46,7 @@ class Agent(abc.ABC):
         self._agent_id = agent_id
         self.rng = np.random.default_rng()
         self.drone = self.create_drone(agent_id, max_number_of_seeds, max_battery_available, map)
+        self.messages = []
 
     @abc.abstractmethod
     def see(self, map: Map) -> None:
@@ -76,6 +77,18 @@ class Agent(abc.ABC):
 
     def get_drone(self):
         return self.drone
+
+    def get_id(self):
+        return self._agent_id
+
+    def receive_message(self, message):
+        self.messages.append(message)
+
+    def read_messages(self):
+        return self.messages
+
+    def reset_messages(self):
+        self.messages = []
 
 
 class RandomAgent(Agent):
@@ -218,7 +231,8 @@ class GreedyAgent(PathBased):
     def choose_action(self) -> Action:
         from default import MAP
 
-        if self.drone.nr_seeds.count(0) == 3 or len(_bfs_with_positions(MAP, self.drone.get_loc(), self.drone.get_charging_station())) == self.drone.get_battery_available() + 1:
+        if self.drone.nr_seeds.count(0) == 3 or len(_bfs_with_positions(MAP, self.drone.get_loc(),
+                                                                        self.drone.get_charging_station())) == self.drone.get_battery_available() + 1:
             return self._go_to_charging_station(self.drone)
         else:
             return self._plant_nearest_square(self.drone)
@@ -226,3 +240,18 @@ class GreedyAgent(PathBased):
     def reset(self):
         self.drone = self.create_drone(self._agent_id, self.drone.max_number_of_seeds, self.drone.max_battery_available,
                                        self.drone.map)
+
+
+class CommunicativeAgent(Agent):
+
+    def __init__(self, agent_id: int, max_number_of_seeds: int, max_battery_available: int, map: Map) -> None:
+        super().__init__(agent_id, max_number_of_seeds, max_battery_available, map)
+
+    def see(self, map: Map) -> None:
+        pass
+
+    def choose_action(self) -> Action:
+        pass
+
+    def reset(self) -> None:
+        pass

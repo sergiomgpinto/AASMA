@@ -4,7 +4,7 @@ import yaml
 from typing import Any
 from drone import Drone
 from env import Environment
-from agent import Agent, RandomAgent
+from agent import Agent, RandomAgent, GreedyAgent
 from graphical import EnvironmentPrinter
 from metrics import get_percentage_of_planted_squares, get_avg_distance_needed_to_identify_fertile_land, \
     get_avg_energy_used_per_planted_tree
@@ -12,7 +12,7 @@ from grid import Map
 from default import MAP
 
 
-def run_graphical(map: Map, agents: list[Agent], drones: list[Drone]) -> tuple[int, bool, bool | Any, float | Any, Any, Any]:
+def run_graphical(map: Map, agents: list[Agent], drones: list[Drone], agent_type: str) -> tuple[int, bool, bool | Any, float | Any, Any, Any]:
     with EnvironmentPrinter(map.get_initial_grid()) as printer:
         environment = Environment(printer, map)
 
@@ -31,8 +31,19 @@ def run_graphical(map: Map, agents: list[Agent], drones: list[Drone]) -> tuple[i
             for agent in agents:
                 agent.see(map)
 
-            actions = [agent.choose_action() for agent in agents]
+            if agent_type == "Random": 
+                actions = [agent.choose_action() for agent in agents]
+            elif agent_type == "GreedyAgent":
+                print('GreedyAgent')
+                actions = []
+                for a,d in zip(agents,drones):
+                    print('a',a)
+                    print('d',d)
+                    action = agent.choose_action(d)
+                    print('action',action)
+                    actions.append(action)
 
+            print('actions',actions)
             terminal = environment.step(actions, drones)
             all_drones_dead = all([drone.is_drone_dead() for drone in drones])
 
@@ -81,17 +92,26 @@ def main():
 
     # Agents & Map
     map = Map(MAP)
-    agents = [RandomAgent(i, max_number_of_seeds, max_battery_capacity, map) for i in range(num_agents)]
+    
+    if data["agent_type"] == "Random":
+        agents = [RandomAgent(i, max_number_of_seeds, max_battery_capacity, map) for i in range(num_agents)]
+    elif data["agent_type"] == "GreedyAgent":
+        agents = [GreedyAgent(i, max_number_of_seeds, max_battery_capacity, map) for i in range(num_agents)]
 
     # Main loop
     for _ in range(n_runs):
+
+        print("run")
 
         for agent in agents:
             drones.append(agent.get_drone())
 
         if run_with_graphics:
+            print('here')
             n_steps, terminal, all_drones_dead, percentage_of_planted_squares, avg_distance_needed_to_fertile_land, avg_energy_used_per_planted_tree = \
-                run_graphical(map, agents, drones)
+                run_graphical(map, agents, drones, data["agent_type"])
+        
+        print('saiu')
 
         # Metrics
         avg_drone_distance.append(np.mean([drone.total_distance for drone in drones]))

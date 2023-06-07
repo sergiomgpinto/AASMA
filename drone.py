@@ -5,6 +5,15 @@ from grid import Map
 from grid import Cell
 
 
+class Goal(enum.Enum):
+    PLANT = 1
+    CHARGE = 2
+    WAIT = 3
+
+    def __repr__(self) -> str:
+        return f"Goal({self.name})"
+
+
 class Action(enum.Enum):
     """Specifies possible actions the drones can perform."""
 

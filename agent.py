@@ -1,8 +1,9 @@
 import abc
 import dataclasses
+from abc import ABC
 import numpy as np
-from grid import Map
-from drone import Drone, Action
+from grid import Map, Position
+from drone import Drone, Action, Goal
 
 
 @dataclasses.dataclass
@@ -76,3 +77,145 @@ class RandomAgent(Agent):
 
     def reset(self):
         self.drone = self.create_drone(self._agent_id, self.drone.max_number_of_seeds, self.drone.max_battery_available, self.drone.map)
+
+
+'''
+class EnergyBased(Agent, ABC):
+    """Utility class with path based functions."""
+
+    def _has_enough_energy(self, agent_drone: Drone, target: Position) -> bool:
+        """
+        Checks that there is enough energy to go to nearest plantable square and head back to charging station,
+        considering the drone's current position, the target and the target's distance to the charging station.
+
+        """
+        battery_cost = len(self._bfs_with_positions(agent_drone.map, agent_drone.loc, target)) + len(
+            self._bfs_with_positions(agent_drone.map, target, agent_drone.map.
+                                     find_charging_station()))
+        print('battery cost: ', battery_cost)
+        print('battery available: ', agent_drone.battery_available)
+        return agent_drone.battery_available > battery_cost
+
+
+class PathBased(EnergyBased, ABC):
+    """Utility class with path based functions."""
+
+    def _plant_nearest_square(self, agent_drone: Drone) -> Action:
+        plantable_pos = agent_drone.map.plantable_squares()
+        print('plantable_pos', plantable_pos)
+        if len(plantable_pos) == 0:
+            return Action.STAY
+
+        shortest_paths = [
+            self._bfs_with_positions(agent_drone.map, agent_drone.loc, p)
+            for p in plantable_pos
+        ]
+
+        path_idx = np.argmin([len(p) for p in shortest_paths])
+
+        if self._has_enough_energy(agent_drone, plantable_pos[path_idx]):
+            print('has enough energy')
+            if len(shortest_paths[path_idx]) == 1 and agent_drone.loc == shortest_paths[path_idx][0]:
+                return Action.PLANT
+            else:
+                action = self._move_in_path_and_act(agent_drone, shortest_paths[path_idx], env.Action.PLANT,
+                                                    Goal.PLANT)
+                print('action', action)
+                return action
+        else:
+            return self._go_to_charging_station(agent_drone)
+
+    def _go_to_charging_station(self, agent_drone: Drone) -> Action:
+
+        charging_station_pos = agent_drone.map.find_charging_station()  # TODO find_closest no caso de querermos ter várias estações ativas
+        shortest_path = self._bfs_with_positions(agent_drone.map, agent_drone.loc, charging_station_pos)
+        action = self._move_in_path_and_act(agent_drone, shortest_path, Action.CHARGE, Goal.CHARGE)
+        if action == Action.CHARGE:
+            if charging_station_max_capacity == charging_station_
+        return action
+
+    def _move_in_path_and_act(self, agent_drone: Drone, path: list[Position], last_action: env.Action,
+                              goal: Goal) -> Action:
+        if len(path) == 1:
+            print('path 1')
+            curr_pos = agent_drone.loc
+            next_pos = path[0]
+            if curr_pos == next_pos:
+                print('made it to destination')
+                if goal == Goal.PLANT:
+                    return Action.PLANT
+                if goal == Goal.CHARGE:
+                    return Action.CHARGE
+        else:
+            curr_pos = path[0]
+            next_pos = path[1]
+            print('not path 1')
+        if next_pos == curr_pos.up:
+            return Action.UP
+        elif next_pos == curr_pos.down:
+            return Action.DOWN
+        elif next_pos == curr_pos.left:
+            return Action.LEFT
+        elif next_pos == curr_pos.right:
+            return Action.RIGHT
+        elif next_pos == curr_pos.up_right:
+            return Action.UP_RIGHT
+        elif next_pos == curr_pos.up_left:
+            return Action.UP_LEFT
+        elif next_pos == curr_pos.down_right:
+            return Action.DOWN_RIGHT
+        elif next_pos == curr_pos.down_left:
+            return Action.DOWN_LEFT
+        else:
+            raise ValueError(
+                f"Unknown adj direction: (curr_pos: {curr_pos}, next_pos: {next_pos})"
+            )
+
+    def _bfs_with_positions(
+            self, map: Map, source: Position, target: Position,
+    ) -> list[Position]:
+        """Computes the list of positions in the path from source to target.
+
+        It uses a BFS so the path is the shortest path."""
+
+        # The queue stores tuple with the nodes to explore
+        # and the path taken to the node.
+        queue = [(source, (source,))]
+        # Visited stores already explored positions to avoid
+        # loops._move_in_path_and_act
+        visited = set()
+        while len(queue) > 0:
+            curr, curr_path = queue.pop(0)
+            if curr == target:
+                return list(curr_path)
+            for neighbour in curr.adj:
+                if neighbour not in visited:
+                    neighbour_path = curr_path + (neighbour,)
+                    queue.append((neighbour, neighbour_path))
+                    visited.add(neighbour)
+        raise ValueError("No path found")
+
+
+class GreedyAgent(PathBased):
+    """Agent that plans its path using a BFS."""
+
+    def __init__(self, agent_id: int = 0) -> None:
+        super().__init__(agent_id)
+        self._agent_id = agent_id
+
+    def choose_action(self, agent_drone: Drone) -> Action:
+
+        # Conditions in which the drone needs to go to charging station ???
+        # deviamos adicionar uma função reutilizavel para isto
+        distance_drone_station = len(self._bfs_with_positions(agent_drone.map, agent_drone.loc, agent_drone.map.
+                                                              find_charging_station()))
+
+        print('distance_drone_station: ', distance_drone_station)
+        if agent_drone.nr_seeds.count(0) == 3 or len(
+                self._bfs_with_positions(agent_drone.map, agent_drone.loc, agent_drone.map.
+                        find_charging_station())) == agent_drone.battery_available + 1:
+            print("go to charging station")
+            return self._go_to_charging_station(agent_drone)
+        else:
+            print("go plant")
+            return self._plant_nearest_square(agent_drone)'''''

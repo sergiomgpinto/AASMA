@@ -1,9 +1,9 @@
 import numpy as np
-from grid import Cell
 import yaml
+from grid import Cell
 
 
-class Map:
+class DefaultMap:
     cell_mapping = {
         0: Cell.FERTILE_LAND,
         1: Cell.OAK_TREE,
@@ -13,7 +13,10 @@ class Map:
         5: Cell.OBSTACLE
     }
 
-    def __init__(self, size):
+    def __init__(self):
+        with open("./config.yml", "r") as fp:
+            data = yaml.safe_load(fp)
+        size = data["map_size"]
         self.integer_map = np.random.choice([0, 1, 2, 3, 5], (size, size))
 
         station_x = np.random.randint(size)
@@ -26,7 +29,4 @@ class Map:
         self.MAP = self.vectorized_mapping(self.integer_map)
 
 
-with open("./config.yml", "r") as fp:
-    data = yaml.safe_load(fp)
-
-MAP = Map(data["map_size"]).MAP
+MAP = DefaultMap().MAP

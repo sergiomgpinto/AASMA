@@ -79,6 +79,7 @@ class Cell(enum.Enum):
     EUCALYPTUS_TREE = 3
     CHARGING_STATION = 4
     OBSTACLE = 5
+    UNKNOWN = 6
 
     def __repr__(self) -> str:
         return f"Cell({self.name})"
@@ -88,13 +89,21 @@ class Map:
     """Represents the combination of the grid with the cell values."""
 
     def __init__(self, grid: np.ndarray):
-        # i want initial_grid to be a copy of the grid input
         self.initial_grid = np.copy(grid)
         self.initial_number_of_plantable_squares = np.count_nonzero(self.initial_grid == Cell.FERTILE_LAND)
         self.grid = np.copy(grid)
 
     def reset(self):
         self.grid = np.copy(self.initial_grid)
+
+    def get_initial_number_of_plantable_squares(self):
+        return self.initial_number_of_plantable_squares
+
+    def get_grid(self):
+        return self.grid
+
+    def get_initial_grid(self):
+        return self.initial_grid
 
     @property
     def height(self):
@@ -205,7 +214,7 @@ class Map:
 
     def adj_positions(self, p: Position) -> List[Position]:
         positions = [adj for adj in p.adj if
-                     self.is_inside_map(adj)]  # aqui devia ser is_inside_map(adj) mas dava erro entao substitui por p
+                     self.is_inside_map(adj)]
         return positions
 
     def adj_pos_of_type(self, p: Position, cell_type: Optional[Cell]) -> List[Position]:
@@ -279,7 +288,8 @@ class Map:
             if self.is_charging_station(p):
                 return p
 
-    def map_id_to_cell_type(self, id: int) -> Cell:
+    @staticmethod
+    def map_id_to_cell_type(id: int) -> Cell:
         """
         Maps an id to a cell type.
         """

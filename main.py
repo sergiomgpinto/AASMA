@@ -1,26 +1,26 @@
-import agent
-import env
-import grid
-import default
-import graphical
 import numpy as np
 import pygame
 import yaml
-import tqdm
+from typing import Any
+from drone import Drone
+from env import Environment
+from agent import Agent, RandomAgent
+from graphical import EnvironmentPrinter
+from metrics import get_percentage_of_planted_squares, get_avg_distance_needed_to_identify_fertile_land, \
+    get_avg_energy_used_per_planted_tree
+from grid import Map
+from default import MAP
 
-import time
 
-from typing import List
+def run_graphical(map: Map, agents: list[Agent], drones: list[Drone]) -> tuple[int, bool, bool | Any, float | Any, Any, Any]:
+    with EnvironmentPrinter(map.get_initial_grid()) as printer:
+        environment = Environment(printer, map)
 
+        environment.render(drones)
 
-def run_graphical(map: grid.Map, agents: List[agent.Base], log_level: str, max_number_of_seeds: int,
-                  max_battery_capacity: int):
-    with graphical.EnvironmentPrinter(map.initial_grid) as printer:
-        map.reset()
-        environment = env.Environment(map=map, init_drones=len(agents), printer=printer, log_level=log_level)
-        observations = environment.reset(max_number_of_seeds, max_battery_capacity)
-        environment.render()
         running = True
+        terminal = False
+        all_drones_dead = False
         n_steps = 0
 
         while running:
@@ -28,111 +28,100 @@ def run_graphical(map: grid.Map, agents: List[agent.Base], log_level: str, max_n
                 if event.type == pygame.QUIT:
                     running = False
 
-            for observations, agent in zip(observations, agents):
-                agent.see(observations)
+            for agent in agents:
+                agent.see(map)
 
-            actions = [a.choose_action() for a in agents]
-            observations, terminal, all_drones_dead = environment.step(actions)
+            actions = [agent.choose_action() for agent in agents]
+
+            terminal = environment.step(actions, drones)
+            all_drones_dead = all([drone.is_drone_dead() for drone in drones])
 
             n_steps += 1
-            environment.render()
+            environment.render(drones)
+
+            # Terminal conditions
             if terminal:
                 break
             if all_drones_dead:
                 break
 
-            time.sleep(0.25)
-        percentage_of_planted_squares = map.number_of_planted_squares() / map.initial_number_of_plantable_squares
-        avg_distance_needed_to_identify_fertile_land = environment.get_avg_distance_needed_to_identify_fertile_land()
-        avg_energy_used_per_planted_tree = environment.get_avg_energy_used_per_planted_tree()
+            # time.sleep(0.25)
 
-    return environment.drones, n_steps, terminal, all_drones_dead, percentage_of_planted_squares, \
-           avg_distance_needed_to_identify_fertile_land, avg_energy_used_per_planted_tree
+    # Metrics
+    percentage_of_planted_squares = get_percentage_of_planted_squares(map)
+    avg_distance_needed_to_identify_fertile_land = get_avg_distance_needed_to_identify_fertile_land(agents)
+    avg_energy_used_per_planted_tree = get_avg_energy_used_per_planted_tree(agents)
+
+    return n_steps, terminal, all_drones_dead, percentage_of_planted_squares, avg_distance_needed_to_identify_fertile_land, avg_energy_used_per_planted_tree
 
 
 def main():
     with open("./config.yml", "r") as fp:
         data = yaml.safe_load(fp)
 
-    drones_distances = []
+    drones = []
     all_n_steps = []
     number_of_dead_drones = []
     percentage_of_planted_trees = []
-    num_charging_stations = data[data["agent_type"]]["nr_charging_stations"]
+    avg_energy_used = []
+    avg_distance_needed_to_identify_fertile_land = []
+    avg_drone_distance = []
+    n_steps = 0
+    percentage_of_planted_squares = 0.0
+    avg_distance_needed_to_fertile_land = 0
+    avg_energy_used_per_planted_tree = 0
+    all_drones_dead = False
+    terminal = False
+
     max_number_of_seeds = data["max_number_of_seeds"]
     max_battery_capacity = data["max_battery_capacity"]
     num_agents = data[data["agent_type"]]["nr_agents"]
-    map = grid.Map(default.MAP)
     run_with_graphics = data["graphical"]
-    log_level = data["log_level"]
     n_runs = data["n_runs"]
-    all_drones_dead = False
-    terminal = False
-    n_steps = 0
-    percentage_of_planted_squares = 0.0
-    percentage_of_planted_trees = []
-    agents = []
-    drones = []
-    avg_distance_needed_to_identify_fertile_land = []
-    avg_distance_needed_to_fertile_land = 0
-    avg_energy_used_per_planted_tree = 0
-    avg_energy_used = []
 
-    if data["agent_type"] == "Random":
-        agents = [agent.Random(agent_id=i) for i in range(num_agents)]
+    # Agents & Map
+    map = Map(MAP)
+    agents = [RandomAgent(i, max_number_of_seeds, max_battery_capacity, map) for i in range(num_agents)]
 
-    if run_with_graphics:
-        iterable = range(n_runs)
-    else:
-        iterable = tqdm.tqdm(range(n_runs))
+    # Main loop
+    for _ in range(n_runs):
 
-    for _ in iterable:
+        for agent in agents:
+            drones.append(agent.get_drone())
+
         if run_with_graphics:
-            drones, n_steps, terminal, all_drones_dead, percentage_of_planted_squares, \
-            avg_distance_needed_to_fertile_land, avg_energy_used_per_planted_tree = \
-                run_graphical(map, agents, log_level, max_number_of_seeds, max_battery_capacity)
+            n_steps, terminal, all_drones_dead, percentage_of_planted_squares, avg_distance_needed_to_fertile_land, avg_energy_used_per_planted_tree = \
+                run_graphical(map, agents, drones)
 
-        avg_drone_distance = np.mean([drone.total_distance for drone in drones])
-        drones_distances.append(avg_drone_distance)
+        # Metrics
+        avg_drone_distance.append(np.mean([drone.total_distance for drone in drones]))
         all_n_steps.append(n_steps)
-        number_of_dead_drones.append(len([drone for drone in drones if drone.is_dead]))
+        number_of_dead_drones.append(len([drone for drone in drones if drone.is_drone_dead]))
         percentage_of_planted_trees.append(percentage_of_planted_squares)
         avg_distance_needed_to_identify_fertile_land.append(avg_distance_needed_to_fertile_land)
         avg_energy_used.append(avg_energy_used_per_planted_tree)
 
+        for agent in agents:
+            agent.reset()
+        map.reset()
+        drones = []
+
+        # Terminal conditions for a run
         if all_drones_dead:
             all_drones_dead = False
             continue
         if terminal:
             break
 
+    # Write metrics to file
     with open(f"metrics-{data['agent_type']}-agents-{num_agents}.csv", "w") as metrics:
         metrics.write(
-            "Average distance to identify fertile land, Percentage of planted squares, Number of drones that died, Drones average distance traveled, Number of steps to complete the map\n")
-        for a, b, c, d, e in zip(avg_distance_needed_to_identify_fertile_land, percentage_of_planted_trees,
-                                 number_of_dead_drones, drones_distances, all_n_steps):
-            metrics.write(f"{a}, {b}, {c}, {d}, {e}\n")
+            "Average energy used per planted tree, Average distance to identify fertile land, Percentage of planted squares, Number of drones that died, Drones average distance traveled, Number of steps to complete the map\n")
+        for a, b, c, d, e, f in zip(avg_energy_used, avg_distance_needed_to_identify_fertile_land,
+                                    percentage_of_planted_trees,
+                                    number_of_dead_drones, avg_drone_distance, all_n_steps):
+            metrics.write(f"{a}, {b}, {c}, {d}, {e}, {f}\n")
 
 
 if __name__ == "__main__":
     main()
-
-'''
-def run_not_graphical(map: grid.Map, agents: List[agent.Base], log_level: str):
-    environment = env.Environment(map=map, init_drones=len(agents), log_level=log_level)
-
-    observations = environment.reset()
-    running = True
-    n_steps = 0
-    while running:
-        for observations, agent in zip(observations, agents):
-            agent.see(observations)
-
-        actions = [a.choose_action() for a in agents]
-        observations, terminal = environment.step(*actions)
-        n_steps += 1
-        if terminal:
-            break
-    # TODO: metricas
-    return environment.drones, n_steps, terminal
-'''

@@ -1,55 +1,84 @@
-import dataclasses
 import enum
 import numpy as np
-import grid as grid
-from dataclasses import field
+import yaml
+from grid import Map
+from grid import Cell
 
 
-class Direction(enum.Enum):
+class Action(enum.Enum):
+    """Specifies possible actions the drones can perform."""
+
     UP = 0
+    """Moves the drone up."""
+
     DOWN = 1
+    """Moves the drone down."""
+
     LEFT = 2
+    """Moves the drone to the left."""
+
     RIGHT = 3
-    UP_RIGHT = 4
-    UP_LEFT = 5
-    DOWN_RIGHT = 6
-    DOWN_LEFT = 7
+    """Moves the drone to the right."""
+
+    STAY = 4
+    """Stays in the same position."""
+
+    PLANT = 5
+    """Plants fertile land."""
+
+    CHARGE = 6
+    """Charges drone's batery."""
+
+    UP_RIGHT = 7
+    """Moves the drone diagonally to the upper right square."""
+
+    UP_LEFT = 8
+    """Moves the drone diagonally to the upper right square."""
+
+    DOWN_RIGHT = 9
+    """Moves the drone down diagonally to the right square."""
+
+    DOWN_LEFT = 10
+    """Moves the drone down diagonally to the right square."""
 
     def __repr__(self) -> str:
-        return f"Direction({self.name})"
+        return f"Action({self.name})"
 
 
-class Goal(enum.Enum):
-    PLANT = 1
-    CHARGE = 2
-    WAIT = 3
-
-    def __repr__(self) -> str:
-        return f"Goal({self.name})"
-
-
-@dataclasses.dataclass
 class Drone:
-    loc: grid.Position
-    map: grid.Map
-    id: int
-    max_battery_available: int
-    max_number_of_seeds: int
-    distance_between_fertile_lands: int
-    distance_needed_to_identify_fertile_land: list
-    energy_per_planted_tree : list
 
-    energy_used_before_planted_tree: int = 0
-    nr_seeds: list = field(default_factory=lambda: [100, 100, 100]) # [OAK_TREE,PINE_TREE,EUCALYPTUS]
-    total_distance: int = 0
-    possible_drone_directions: list = field(default_factory=lambda: [
-        Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT,
-        Direction.UP_RIGHT, Direction.UP_LEFT, Direction.DOWN_RIGHT, Direction.DOWN_LEFT])
-    is_dead: bool = False
+    def __init__(self, loc, id, max_number_of_seeds, max_battery_available, distance_between_fertile_lands,
+                 distance_needed_to_identify_fertile_land, energy_per_planted_tree):
 
-    def __post_init__(self):
-        self.direction = np.random.choice(self.possible_drone_directions)
+        self.loc = loc
+        self.id = id
+        self.max_number_of_seeds = max_number_of_seeds
+        self.max_battery_available = max_battery_available
+        self.distance_between_fertile_lands = distance_between_fertile_lands
+        self.distance_needed_to_identify_fertile_land = distance_needed_to_identify_fertile_land
+        self.energy_per_planted_tree = energy_per_planted_tree
         self.battery_available = self.max_battery_available
+        self.energy_used_before_planted_tree = 0
+        self.nr_seeds = [self.max_number_of_seeds, self.max_number_of_seeds,
+                         self.max_number_of_seeds]  # [OAK_TREE,PINE_TREE,EUCALYPTUS]
+        self.total_distance = 0
+        self.is_dead = False
+        self.actions = [Action.UP, Action.DOWN, Action.LEFT, Action.RIGHT, Action.STAY, Action.PLANT, Action.CHARGE,
+                        Action.UP_RIGHT, Action.UP_LEFT, Action.DOWN_RIGHT, Action.DOWN_LEFT]
+
+        with open("./config.yml", "r") as fp:
+            data = yaml.safe_load(fp)
+
+        self.map = Map(np.full((data["map_size"], data["map_size"]), Cell.UNKNOWN))
+
+    def set_dead(self):
+        self.is_dead = True
+
+    def is_drone_dead(self):
+        return self.is_dead
+
+    def get_battery_available(self):
+        return self.battery_available
 
     def charge(self):
         """
@@ -60,7 +89,7 @@ class Drone:
             self.battery_available = self.max_battery_available
             self.nr_seeds = [self.max_number_of_seeds, self.max_number_of_seeds, self.max_number_of_seeds]
 
-    def plant(self, map: grid.Map) -> tuple[bool, grid.Cell]:
+    def plant(self, map: Map) -> tuple[bool, Cell]:
         """
         Drone plants fertile land where he is located.
         """
@@ -75,7 +104,38 @@ class Drone:
         else:
             return False, None
 
-    def update_distance_needed_to_identify_fertile_land(self, map: grid.Map):
+    def move(self, action: Action):
+        """Move a drone according to an action."""
+        target_loc = None
+
+        if action == Action.UP:
+            target_loc = self.loc.up
+        elif action == Action.DOWN:
+            target_loc = self.loc.down
+        elif action == Action.RIGHT:
+            target_loc = self.loc.right
+        elif action == Action.LEFT:
+            target_loc = self.loc.left
+        elif action == Action.UP_RIGHT:
+            target_loc = self.loc.up_right
+        elif action == Action.UP_LEFT:
+            target_loc = self.loc.up_left
+        elif action == Action.DOWN_RIGHT:
+            target_loc = self.loc.down_right
+        elif action == Action.DOWN_LEFT:
+            target_loc = self.loc.down_left
+
+        if self.map.is_inside_map(target_loc):
+            self.loc = target_loc
+
+    def update_metrics(self, map: Map):
+        self.battery_available -= 1
+        self.total_distance += 1
+        self.distance_between_fertile_lands += 1
+        self.energy_used_before_planted_tree += 1
+        self.update_distance_needed_to_identify_fertile_land(map)
+
+    def update_distance_needed_to_identify_fertile_land(self, map: Map):
 
         if map.is_fertile_land(self.loc):
             self.distance_needed_to_identify_fertile_land.append(self.distance_between_fertile_lands)
@@ -87,3 +147,5 @@ class Drone:
         else:
             return -1
 
+    def update_map(self, observation):
+        pass

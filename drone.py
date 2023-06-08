@@ -6,6 +6,7 @@ from grid import Cell
 
 
 class Goal(enum.Enum):
+    """Defines the goal for a given agent."""
     PLANT = 1
     CHARGE = 2
     WAIT = 3
@@ -50,12 +51,9 @@ class Action(enum.Enum):
     DOWN_LEFT = 10
     """Moves the drone down diagonally to the right square."""
 
-    def __repr__(self) -> str:
-        return f"Action({self.name})"
-
 
 class Drone:
-
+    """Defines the drone."""
     def __init__(self, loc, id, max_number_of_seeds, max_battery_available, distance_between_fertile_lands,
                  distance_needed_to_identify_fertile_land, energy_per_planted_tree, charging_station_loc):
 
@@ -78,31 +76,43 @@ class Drone:
         with open("./config.yml", "r") as fp:
             data = yaml.safe_load(fp)
 
+        # Every type of agent starts without knowing the map
         self.map = Map(np.full((data["map_size"], data["map_size"]), Cell.UNKNOWN))
         self.charging_station = charging_station_loc
 
     def set_dead(self):
+        """Sets drone as dead."""
         self.is_dead = True
 
     def get_loc(self):
+        """Returns drone's location."""
         return self.loc
 
+    def get_nr_seeds(self):
+        """Returns drone's number of seeds."""
+        return self.nr_seeds
+
     def get_map(self):
+        """Returns drone's map."""
         return self.map
 
+    # TODO: remove this method
     def get_charging_station(self):
+        """Returns charging station's location."""
         return self.charging_station
 
     def is_drone_dead(self):
+        """Returns True if drone is dead, False otherwise."""
         return self.is_dead
 
     def get_battery_available(self):
+        """Returns drone's battery."""
         return self.battery_available
 
     def charge(self):
         """
-        Charges batery. Will only have effect if drone is positioned in charging station and if the charging station 
-        isn't full.
+        Charges batery. Will only have effect if drone is positioned in charging station, if the charging station
+        isn't occupied by another drone and if the agent chooses the action charge.
         """
         if self.map.find_charging_station() == self.loc:
             self.battery_available = self.max_battery_available
@@ -112,7 +122,6 @@ class Drone:
         """
         Drone plants fertile land where he is located.
         """
-
         if map.is_fertile_land(self.loc):
             tree_id = map.get_type_of_tree_that_should_be_planted(self.loc)
             if self.nr_seeds[tree_id] > 0:
@@ -121,6 +130,7 @@ class Drone:
                 self.energy_used_before_planted_tree = 0
                 return True, map.map_id_to_cell_type(tree_id)
         else:
+            # If the drone is not in a fertile land, it will not plant anything
             return False, None
 
     def move(self, action: Action):
@@ -148,6 +158,7 @@ class Drone:
             self.loc = target_loc
 
     def update_metrics(self, map: Map):
+        """Updates drone's metrics."""
         self.battery_available -= 1
         self.total_distance += 1
         self.distance_between_fertile_lands += 1
@@ -155,18 +166,20 @@ class Drone:
         self.update_distance_needed_to_identify_fertile_land(map)
 
     def update_distance_needed_to_identify_fertile_land(self, map: Map):
-
+        """Updates distance needed to identify fertile land."""
         if map.is_fertile_land(self.loc):
             self.distance_needed_to_identify_fertile_land.append(self.distance_between_fertile_lands)
             self.distance_between_fertile_lands = 0
 
     def get_avg_of_drone_energy_used_per_planted_tree(self):
+        """Returns the average of the energy used per planted tree."""
         if len(self.energy_per_planted_tree) != 0:
             return np.mean(self.energy_per_planted_tree)
         else:
             return -1
 
     def update_map(self, observation):
+        """Updates drone's map."""
         adj_positions = observation.get_adj_locations()
         cell_types = observation.get_adj_cell_types()
         for i in range(len(adj_positions)):

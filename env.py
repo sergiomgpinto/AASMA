@@ -1,5 +1,3 @@
-import abc
-
 import numpy as np
 from typing import List
 from drone import Action, Drone
@@ -7,7 +5,7 @@ from grid import Map
 
 
 class Environment:
-
+    """Defines the environment for the drones."""
     def __init__(self, printer, map):
         self.timestep = 0
         self.occupied_squares_with_drones = []
@@ -18,19 +16,23 @@ class Environment:
         # self.chargingstations = self.map.charging_stations()
 
     def get_map(self) -> Map:
+        """Returns the map of the environment."""
         return self.map
 
     def get_planted_squares(self) -> List:
+        """Returns the planted squares of the environment."""
         return self.planted_squares
 
     def render(self, drones) -> None:
+        """Renders the environment."""
         self.printer.print(self, drones)
 
     def step(self, actions: List[Action], drones: List[Drone]) -> bool:
+        """Performs a step in the environment."""
 
         self.timestep += 1
 
-        # Perform agent actions
+        # Perform agents actions
         for drone, act in zip(drones, actions):
             if drone.get_battery_available() != 0:
                 if act in (Action.UP, Action.DOWN, Action.LEFT, Action.RIGHT,
@@ -54,4 +56,5 @@ class Environment:
             else:
                 drone.set_dead()
 
+        # Return True if all the initial fertile land squares are planted with trees
         return len(self.map.plantable_squares()) == 0

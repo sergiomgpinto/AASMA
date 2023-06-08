@@ -2,6 +2,8 @@ from agent import Agent
 from grid import Map
 import numpy as np
 
+""" Metrics to be used for the analysis of the simulation results. """
+
 
 def get_avg_distance_needed_to_identify_fertile_land(agents: list[Agent]):
     distances = []

@@ -7,23 +7,21 @@ from drone import Drone
 
 
 class Printer(abc.ABC):
+    """Abstract base class for all printers."""
     @abc.abstractmethod
     def print(self, env, drones) -> None:
         pass
 
 
 class EnvironmentPrinter(Printer):
-
+    """Prints the environment."""
     def __init__(self, grid: np.array):
         self.grid = grid
 
     def print(self, env, drones) -> None:
-
+        """Prints the environment."""
         env_grid = env.get_map().get_grid()
         n_cols, n_rows = env_grid.shape
-
-        assert self.__height % n_cols == 0, "display height is not divisible by number of columns in grid"
-        assert self.__width % n_rows == 0, "display width is not divisible by number of rows in grid"
 
         cell_height = self.__height // n_cols
         cell_width = self.__width // n_rows
@@ -64,7 +62,7 @@ class EnvironmentPrinter(Printer):
             else:
                 raise ValueError(f"Position not road or sidewalk: {pos}")
 
-        self._add_colour_to_planted_squares(env)
+        self.add_colour_to_planted_squares(env)
 
         # Print drones
         drone_printer = DronePrinter(
@@ -77,8 +75,8 @@ class EnvironmentPrinter(Printer):
 
         pygame.display.flip()
 
-    def _add_colour_to_planted_squares(self, env):
-
+    def add_colour_to_planted_squares(self, env):
+        """Adds colour to planted squares."""
         planted_squares = env.get_planted_squares()
         env_grid = env.get_map().get_grid()
         n_cols, n_rows = env_grid.shape
@@ -102,6 +100,7 @@ class EnvironmentPrinter(Printer):
         return None
 
     def __enter__(self):
+        """Initialises pygame and sets the screen size."""
         pygame.init()
         n_cells = self.grid.shape[0] * self.grid.shape[1]
         self.__width = self.__height = ((min(pygame.display.Info().current_w,
@@ -110,11 +109,13 @@ class EnvironmentPrinter(Printer):
         return self
 
     def __exit__(self, ex_type, ex_val, ex_traceback) -> bool:
+        """Quits pygame."""
         pygame.quit()
         return False
 
 
 class BasePrinter:
+    """Abstract base class for all cell printers."""
     def __init__(self, screen: pygame.Surface, cell_width: int, cell_height: int):
         self._screen = screen
         self._cell_width = cell_width
@@ -135,6 +136,7 @@ class BasePrinter:
 
 
 class CellPrinter(abc.ABC, BasePrinter):
+    """Abstract base class for all cell printers."""
     @abc.abstractmethod
     def colour(self) -> pygame.Surface:
         pass
@@ -148,41 +150,48 @@ class CellPrinter(abc.ABC, BasePrinter):
 
 
 class FertileLandPrinter(CellPrinter):
+    """Prints fertile land."""
     def colour(self) -> pygame.Surface:
         return pygame.transform.scale(pygame.image.load("Images/Fertile.png"), (self._cell_width, self._cell_height))
 
 
 class OakTreePrinter(CellPrinter):
+    """Prints oak trees."""
     def colour(self) -> pygame.Surface:
         return pygame.transform.scale(pygame.image.load("Images/Oak.png"), (self._cell_width, self._cell_height))
 
 
 class PineTreePrinter(CellPrinter):
+    """Prints pine trees."""
     def colour(self) -> pygame.Surface:
         return pygame.transform.scale(pygame.image.load("Images/Pine.png"), (self._cell_width, self._cell_height))
 
 
 class EucalyptusTreePrinter(CellPrinter):
+    """Prints eucalyptus trees."""
     def colour(self) -> pygame.Surface:
         return pygame.transform.scale(pygame.image.load("Images/Eucalyptus.png"), (self._cell_width, self._cell_height))
 
 
 class ChargingStationPrinter(CellPrinter):
+    """Prints charging stations."""
     def colour(self) -> pygame.Surface:
         return pygame.transform.scale(pygame.image.load("Images/Station.png"), (self._cell_width, self._cell_height))
 
 
 class ObstaclePrinter(CellPrinter):
+    """Prints obstacles."""
     def colour(self) -> pygame.Surface:
         return pygame.transform.scale(pygame.image.load("Images/Obstacle.png"), (self._cell_width, self._cell_height))
 
 
 class DronePrinter(BasePrinter):
+    """Prints drones."""
     def __init__(self, screen: pygame.Surface, cell_width: int, cell_height: int):
         super().__init__(screen=screen, cell_width=cell_width, cell_height=cell_height)
 
     def print(self, d: Drone) -> None:
-
+        """Draws a drone icon for the given drone."""
         if d.is_drone_dead():
             drone_icon = pygame.transform.scale(pygame.image.load("Images/coffin.png"),
                                                 (0.8 * self._cell_width, 0.8 * self._cell_height))

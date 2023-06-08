@@ -1,6 +1,9 @@
 import enum
 import numpy as np
 import yaml
+from agent import GreedyObservation, CommunicativeObservation
+from communication import MapUpdateMessage, EnergyAndSeedLevelsStatusMessage, ChargingStatusMessage, \
+    DronePlantingMessage, DroneLocationMessage
 from grid import Map
 from grid import Cell
 
@@ -54,6 +57,7 @@ class Action(enum.Enum):
 
 class Drone:
     """Defines the drone."""
+
     def __init__(self, loc, id, max_number_of_seeds, max_battery_available, distance_between_fertile_lands,
                  distance_needed_to_identify_fertile_land, energy_per_planted_tree, charging_station_loc):
 
@@ -72,6 +76,11 @@ class Drone:
         self.is_dead = False
         self.actions = [Action.UP, Action.DOWN, Action.LEFT, Action.RIGHT, Action.STAY, Action.PLANT, Action.CHARGE,
                         Action.UP_RIGHT, Action.UP_LEFT, Action.DOWN_RIGHT, Action.DOWN_LEFT]
+        self.messages = []
+        self.energy_level_and_seed_status = {}
+        self.charging_status = {}
+        self.drone_planting = {}
+        self.drone_location = {}
 
         with open("./config.yml", "r") as fp:
             data = yaml.safe_load(fp)
@@ -79,6 +88,18 @@ class Drone:
         # Every type of agent starts without knowing the map
         self.map = Map(np.full((data["map_size"], data["map_size"]), Cell.UNKNOWN))
         self.charging_station = charging_station_loc
+
+    def receive_message(self, message):
+        """Receives a message."""
+        self.messages.append(message)
+
+    def read_messages(self):
+        """Reads the messages."""
+        return self.messages
+
+    def reset_messages(self):
+        """Resets the messages."""
+        self.messages = []
 
     def set_dead(self):
         """Sets drone as dead."""
@@ -178,9 +199,74 @@ class Drone:
         else:
             return -1
 
-    def update_map(self, observation):
+    def update_map_greedy(self, observation: GreedyObservation):
         """Updates drone's map."""
         adj_positions = observation.get_adj_locations()
         cell_types = observation.get_adj_cell_types()
         for i in range(len(adj_positions)):
             self.map.update_position(adj_positions[i], cell_types[i])
+
+    def update_map_coomunicative(self, observation: CommunicativeObservation):
+        """Updates drone's map."""
+        messages = observation.get_messages()
+
+        for message in messages:
+            if isinstance(message, MapUpdateMessage):
+                payload = message.get_payload()
+                adj_positions = payload.get_adj_positions()
+                adj_cell_types = payload.get_adj_cell_types()
+                for i in range(len(adj_positions)):
+                    self.map.update_position(adj_positions[i], adj_cell_types[i])
+                self.messages.remove(message)
+
+    def update_energy_and_seed_level_status(self, observation: CommunicativeObservation):
+        """Updates drone's energy and seed level."""
+        messages = observation.get_messages()
+
+        for message in messages:
+            if isinstance(message, EnergyAndSeedLevelsStatusMessage):
+                sender_id = message.get_sender()
+                payload = message.get_payload()
+                self.battery_available = payload.get_energy_level()
+                self.nr_seeds = payload.get_seed_level()
+                self.energy_level_and_seed_status[sender_id] = \
+                    {'battery_available': self.battery_available, 'nr_seeds': self.nr_seeds}
+                self.messages.remove(message)
+
+    def update_charging_status(self, observation: CommunicativeObservation):
+        """Updates drone's charging status."""
+        messages = observation.get_messages()
+
+        for message in messages:
+            if isinstance(message, ChargingStatusMessage):
+                sender_id = message.get_sender()
+                payload = message.get_payload()
+                timestep = payload.get_timestep()
+                self.charging_status[sender_id] = timestep
+                #TODO may become more complex
+                self.messages.remove(message)
+
+    def update_drone_planting(self, observation: CommunicativeObservation):
+        """Updates drone's planting status."""
+        messages = observation.get_messages()
+
+        for message in messages:
+            if isinstance(message, DronePlantingMessage):
+                sender_id = message.get_sender()
+                payload = message.get_payload()
+                planting_location = payload.get_planting_location()
+                self.drone_planting[sender_id] = planting_location
+                self.messages.remove(message)
+
+    def update_drone_location(self, observation: CommunicativeObservation):
+        """Updates drone's location."""
+        messages = observation.get_messages()
+
+        for message in messages:
+            if isinstance(message, DroneLocationMessage):
+                sender_id = message.get_sender()
+                payload = message.get_payload()
+                drone_location = payload.get_drone_location()
+                self.drone_location[sender_id] = drone_location
+                self.messages.remove(message)
+

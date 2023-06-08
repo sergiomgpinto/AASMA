@@ -7,10 +7,10 @@
 n_runs: 100
 
 # Type of agents to be used
-agent_type:  RandomAgent #GreedyAgent #RandomAgent #CommunicativeAgent
+agent_type:  CommunicativeAgent #RandomAgent #GreedyAgent #RandomAgent #CommunicativeAgent
 
 # Window size for the graphical interface
-map_size: 7 #Maximum is 26
+map_size: 26 #Maximum is 26
 
 # Max and starting number of seeds for each tree for the drones
 max_number_of_seeds: 10
@@ -19,14 +19,14 @@ max_number_of_seeds: 10
 max_battery_capacity: 100
 
 # Number of charging stations in the map
-nr_charging_stations: 3
+nr_charging_stations: 1
 
 # Ratio of fertile land
-fertile_land_ratio: 0.7
+fertile_land_ratio: 0.5
 
 # Number of agents for the random type
 RandomAgent:
-  nr_agents: 7
+  nr_agents: 5
 
 # Number of agents for the greedy type
 GreedyAgent:
@@ -34,7 +34,7 @@ GreedyAgent:
 
 # Number of agents for the communicative type
 CommunicativeAgent:
-  nr_agents: 3
+  nr_agents: 2
 
 # Configures the time for each time step in seconds
 timestep: 1

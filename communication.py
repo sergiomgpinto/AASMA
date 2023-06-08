@@ -9,6 +9,7 @@ class Payload:
 
 class MapUpdatePayload(Payload):
     """ Payload for updating the map."""
+
     def __init__(self, adj_postions: np.array, adj_cell_types: np.array):
         self.adj_positions = adj_postions
         self.adj_cell_types = adj_cell_types
@@ -24,6 +25,7 @@ class MapUpdatePayload(Payload):
 
 class EnergyAndSeedLevelsStatusPayload(Payload):
     """ Payload for energy and seed levels status."""
+
     def __init__(self, energy_level: int, seed_level: list):
         self.energy_level = energy_level
         self.seed_level = seed_level
@@ -39,16 +41,18 @@ class EnergyAndSeedLevelsStatusPayload(Payload):
 
 class ChargingStatusPayload(Payload):
     """ Payload for charging status."""
-    def __init__(self, charging__agent_id: int):
-        self.charging_agent_id = charging__agent_id
 
-    def get_charging_agent_id(self):
+    def __init__(self, timestep: int):
+        self.timestep = timestep
+
+    def get_timestep(self):
         """ Returns the charging agent id."""
-        return self.charging_agent_id
+        return self.timestep
 
 
 class DronePlantingPayload(Payload):
     """ Payload for drone planting."""
+
     def __init__(self, planting_location: Position):
         self.planting_location = planting_location
 
@@ -57,8 +61,20 @@ class DronePlantingPayload(Payload):
         return self.planting_location
 
 
+class DroneLocationPayload(Payload):
+    """ Payload for drone location."""
+
+    def __init__(self, drone_location: Position):
+        self.drone_location = drone_location
+
+    def get_drone_location(self):
+        """ Returns the drone location."""
+        return self.drone_location
+
+
 class Message:
     """ Base class for all messages."""
+
     def __init__(self, sender_id: int, receiver_id: int, payload: Payload):
         self.sender_id = sender_id
         self.receiver_id = receiver_id
@@ -79,58 +95,88 @@ class Message:
 
 class MapUpdateMessage(Message):
     """ Message for updating the map."""
+
     def __init__(self, sender_id: int, receiver_id: int, payload: MapUpdatePayload):
         super().__init__(sender_id, receiver_id, payload)
 
 
 class EnergyAndSeedLevelsStatusMessage(Message):
     """ Message for energy and seed levels status."""
+
     def __init__(self, sender_id: int, receiver_id: int, status: EnergyAndSeedLevelsStatusPayload):
         super().__init__(sender_id, receiver_id, status)
 
 
 class ChargingStatusMessage(Message):
     """ Message for charging status."""
+
     def __init__(self, sender_id: int, receiver_id: int, status: ChargingStatusPayload):
         super().__init__(sender_id, receiver_id, status)
 
 
 class DronePlantingMessage(Message):
     """ Message for drone planting."""
+
     def __init__(self, sender_id: int, receiver_id: int, payload: DronePlantingPayload):
         super().__init__(sender_id, receiver_id, payload)
 
 
+class DroneLocationMessage(Message):
+    """ Message for drone location."""
+
+    def __init__(self, sender_id: int, receiver_id: int, payload: DroneLocationPayload):
+        super().__init__(sender_id, receiver_id, payload)
+
+
 class Communication:
+
     """ Class for communication between agents."""
+
     def __init__(self, sender_id: int, agents: list):
         self.sender_id = sender_id
         self.agents = agents
 
     def send_map_update(self, payload: MapUpdatePayload):
+        from agent import CommunicativeAgent
         """ Sends a map update message to all agents except the sender."""
         for agent in self.agents:
-            if agent.get_id() != self.sender_id:
+            if agent.get_id() != self.sender_id and isinstance(agent, CommunicativeAgent):
                 message = MapUpdateMessage(self.sender_id, agent.get_id(), payload)
-                agent.receive_message(message)
+                drone = agent.get_drone()
+                drone.receive_message(message)
 
     def send_energy_and_seed_levels_status(self, payload: EnergyAndSeedLevelsStatusPayload):
+        from agent import CommunicativeAgent
         """ Sends an energy and seed levels status message to all agents except the sender."""
         for agent in self.agents:
-            if agent.get_id() != self.sender_id:
+            if agent.get_id() != self.sender_id and isinstance(agent, CommunicativeAgent):
                 message = EnergyAndSeedLevelsStatusMessage(self.sender_id, agent.get_id(), payload)
-                agent.receive_message(message)
+                drone = agent.get_drone()
+                drone.receive_message(message)
+
+    def send_drone_location(self, payload: DroneLocationPayload):
+        from agent import CommunicativeAgent
+        """ Sends a drone location message to all agents except the sender."""
+        for agent in self.agents:
+            if agent.get_id() != self.sender_id and isinstance(agent, CommunicativeAgent):
+                message = DroneLocationMessage(self.sender_id, agent.get_id(), payload)
+                drone = agent.get_drone()
+                drone.receive_message(message)
 
     def send_charging_status(self, payload: ChargingStatusPayload):
+        from agent import CommunicativeAgent
         """ Sends a charging status message to all agents except the sender."""
         for agent in self.agents:
-            if agent.get_id() != self.sender_id:
+            if agent.get_id() != self.sender_id and isinstance(agent, CommunicativeAgent):
                 message = ChargingStatusMessage(self.sender_id, agent.get_id(), payload)
-                agent.receive_message(message)
+                drone = agent.get_drone()
+                drone.receive_message(message)
 
     def send_drone_planting(self, payload: DronePlantingPayload):
+        from agent import CommunicativeAgent
         """ Sends a drone planting message to all agents except the sender."""
         for agent in self.agents:
-            if agent.get_id() != self.sender_id:
+            if agent.get_id() != self.sender_id and isinstance(agent, CommunicativeAgent):
                 message = DronePlantingMessage(self.sender_id, agent.get_id(), payload)
-                agent.receive_message(message)
+                drone = agent.get_drone()
+                drone.receive_message(message)

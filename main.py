@@ -31,10 +31,8 @@ def run_graphical(map: Map, agents: list[Agent], drones: list[Drone], timestep: 
 
             for agent in agents:
                 agent.see(map)
-
             actions = [agent.choose_action() for agent in agents]
-
-            terminal = environment.step(actions, drones)
+            terminal = environment.step(actions, agents)
             all_drones_dead = all([drone.is_drone_dead() for drone in drones])
 
             n_steps += 1
@@ -46,7 +44,7 @@ def run_graphical(map: Map, agents: list[Agent], drones: list[Drone], timestep: 
             if all_drones_dead:
                 break
 
-            time.sleep(timestep)
+            #time.sleep(timestep)
 
     # Metrics
     percentage_of_planted_squares = get_percentage_of_planted_squares(map)
@@ -94,6 +92,8 @@ def main():
 
         # Create drones
         for agent in agents:
+            if isinstance(agent, CommunicativeAgent):
+                agent.set_agents(agents)
             drones.append(agent.get_drone())
 
         # Run simulation

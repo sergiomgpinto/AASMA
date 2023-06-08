@@ -1,6 +1,5 @@
 import numpy as np
 from typing import List
-from drone import Action, Drone
 from grid import Map
 
 
@@ -27,17 +26,21 @@ class Environment:
         """Renders the environment."""
         self.printer.print(self, drones)
 
-    def step(self, actions: List[Action], drones: List[Drone]) -> bool:
+    def step(self, actions: List["Action"], agents: List["Agent"]) -> bool:
+        from drone import Action
+
         """Performs a step in the environment."""
 
         self.timestep += 1
 
         # Perform agents actions
-        for drone, act in zip(drones, actions):
+        for agent, act in zip(agents, actions):
+            drone = agent.get_drone()
             if drone.get_battery_available() != 0:
                 if act in (Action.UP, Action.DOWN, Action.LEFT, Action.RIGHT,
                            Action.UP_RIGHT, Action.UP_LEFT, Action.DOWN_RIGHT, Action.DOWN_LEFT):
                     drone.move(act)
+                    print("passei")
                 elif act == Action.PLANT:
                     p = drone.loc
                     planted_with_sucess, s = drone.plant(self.map)

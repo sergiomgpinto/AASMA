@@ -1,7 +1,7 @@
 import dataclasses
 import enum
 import numpy as np
-from typing import List, Optional
+from typing import List
 import random
 
 
@@ -81,9 +81,6 @@ class Cell(enum.Enum):
     OBSTACLE = 5
     UNKNOWN = 6
 
-    def __repr__(self) -> str:
-        return f"Cell({self.name})"
-
 
 class Map:
     """Represents the combination of the grid with the cell values."""
@@ -94,15 +91,19 @@ class Map:
         self.grid = np.copy(grid)
 
     def reset(self):
+        """Resets the map to its initial state."""
         self.grid = np.copy(self.initial_grid)
 
     def get_initial_number_of_plantable_squares(self):
+        """Returns the initial number of plantable squares."""
         return self.initial_number_of_plantable_squares
 
     def get_grid(self):
+        """Returns the grid."""
         return self.grid
 
     def get_initial_grid(self):
+        """Returns the initial grid."""
         return self.initial_grid
 
     @property
@@ -129,16 +130,6 @@ class Map:
     def possible_drone_positions(self) -> List[Position]:
         """Returns all the positions in the map where the drone can be."""
         return self.all_positions
-
-    '''
-    @property
-    def possible_station_positions(self) -> List[Position]:
-        return [
-            p 
-            for p in self.all_positions 
-            if self.is_fertile(p) # the station will appear in 1 of the fertile land squares
-        ]
-    '''
 
     def is_obstacle(self, p: Position) -> bool:
         """Returns True if the position is an obstacle, False otherwise."""
@@ -210,43 +201,14 @@ class Map:
         return self.grid[p.y, p.x]
 
     def is_inside_map(self, p: Position) -> bool:
+        """Returns True if the position is inside the map, False otherwise."""
         return 0 <= p.y < self.height and 0 <= p.x < self.width
 
     def adj_positions(self, p: Position) -> List[Position]:
+        """Returns the adjacent positions of the position."""
         positions = [adj for adj in p.adj if
                      self.is_inside_map(adj)]
         return positions
-
-    def adj_pos_of_type(self, p: Position, cell_type: Optional[Cell]) -> List[Position]:
-        positions = self.adj_positions(p)
-        if cell_type == Cell.FERTILE_LAND:
-            positions = [adj for adj in positions if self.is_fertile_land(adj)]
-        elif cell_type == Cell.OAK_TREE:
-            positions = [adj for adj in positions if self.is_oak_tree(adj)]
-        elif cell_type == Cell.PINE_TREE:
-            positions = [adj for adj in positions if self.is_pine_tree(adj)]
-        elif cell_type == Cell.EUCALYPTUS_TREE:
-            positions = [adj for adj in positions if self.is_eucalyptus_tree(adj)]
-        elif cell_type == Cell.OBSTACLE:
-            positions = [adj for adj in positions if self.is_obstacle(adj)]
-        else:
-            raise ValueError(f"Unknown cell type: {cell_type}")
-        return positions
-
-    def has_adj_of_type(self, p: Position, cell_type: Optional[Cell]) -> bool:
-        positions = self.adj_positions(p)
-        if cell_type == Cell.FERTILE_LAND:
-            return any(self.is_fertile_land(adj) for adj in positions)
-        elif cell_type == Cell.OAK_TREE:
-            return any(self.is_oak_tree(adj) for adj in positions)
-        elif cell_type == Cell.PINE_TREE:
-            return any(self.is_pine_tree(adj) for adj in positions)
-        elif cell_type == Cell.EUCALYPTUS_TREE:
-            return any(self.is_eucalyptus_tree(adj) for adj in positions)
-        elif cell_type == Cell.OBSTACLE:
-            return any(self.is_obstacle(adj) for adj in positions)
-        else:
-            raise ValueError(f"Unknown cell type: {cell_type}")
 
     def change_cell_type(self, p: Position, cell_type: Cell):
         """
@@ -272,7 +234,6 @@ class Map:
         been planted.
 
         """
-
         planted_positions = []
         for p in self.all_positions:
             if self.is_oak_tree(p) or self.is_pine_tree(p) or self.is_eucalyptus_tree(p):
@@ -282,23 +243,10 @@ class Map:
     def find_charging_station(self):
         """
         Looks at the grid and returns the position of the charging station
-            
         """
         for p in self.all_positions:
             if self.is_charging_station(p):
                 return p
-
-    @staticmethod
-    def map_id_to_cell_type(id: int) -> Cell:
-        """
-        Maps an id to a cell type.
-        """
-        if id == 0:
-            return Cell.OAK_TREE
-        elif id == 1:
-            return Cell.PINE_TREE
-        elif id == 2:
-            return Cell.EUCALYPTUS_TREE
 
     def number_of_planted_squares(self) -> int:
         """
@@ -316,3 +264,15 @@ class Map:
         Updates the position p in the grid to the cell type.
         """
         self.grid[p.y, p.x] = cell_type
+
+    @staticmethod
+    def map_id_to_cell_type(id: int) -> Cell:
+        """
+        Maps an id to a cell type.
+        """
+        if id == 0:
+            return Cell.OAK_TREE
+        elif id == 1:
+            return Cell.PINE_TREE
+        elif id == 2:
+            return Cell.EUCALYPTUS_TREE

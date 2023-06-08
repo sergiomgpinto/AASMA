@@ -1,10 +1,11 @@
+import time
 import numpy as np
 import pygame
 import yaml
 from typing import Any
 from drone import Drone
 from env import Environment
-from agent import Agent, RandomAgent, GreedyAgent
+from agent import Agent, RandomAgent, GreedyAgent, CommunicativeAgent
 from graphical import EnvironmentPrinter
 from metrics import get_percentage_of_planted_squares, get_avg_distance_needed_to_identify_fertile_land, \
     get_avg_energy_used_per_planted_tree
@@ -12,7 +13,7 @@ from grid import Map
 from default import MAP
 
 
-def run_graphical(map: Map, agents: list[Agent], drones: list[Drone]) -> tuple[int, bool, bool | Any, float | Any, Any, Any]:
+def run_graphical(map: Map, agents: list[Agent], drones: list[Drone], timestep: any) -> tuple[int, bool, bool | Any, float | Any, Any, Any]:
     with EnvironmentPrinter(map.get_initial_grid()) as printer:
         environment = Environment(printer, map)
 
@@ -22,7 +23,6 @@ def run_graphical(map: Map, agents: list[Agent], drones: list[Drone]) -> tuple[i
         terminal = False
         all_drones_dead = False
         n_steps = 0
-        actions = []
 
         while running:
             for event in pygame.event.get():
@@ -46,7 +46,7 @@ def run_graphical(map: Map, agents: list[Agent], drones: list[Drone]) -> tuple[i
             if all_drones_dead:
                 break
 
-            # time.sleep(0.25)
+            time.sleep(timestep)
 
     # Metrics
     percentage_of_planted_squares = get_percentage_of_planted_squares(map)
@@ -60,48 +60,45 @@ def main():
     with open("./config.yml", "r") as fp:
         data = yaml.safe_load(fp)
 
-    drones = []
+    # Parameters from config file
+    max_number_of_seeds = data["max_number_of_seeds"]
+    max_battery_capacity = data["max_battery_capacity"]
+    num_agents = data[data["agent_type"]]["nr_agents"]
+    n_runs = data["n_runs"]
+    timestep = data["timestep"]
+
+    # Variables to store metrics
     all_n_steps = []
     number_of_dead_drones = []
     percentage_of_planted_trees = []
     avg_energy_used = []
     avg_distance_needed_to_identify_fertile_land = []
     avg_drone_distance = []
-    n_steps = 0
-    percentage_of_planted_squares = 0.0
-    avg_distance_needed_to_fertile_land = 0
-    avg_energy_used_per_planted_tree = 0
-    all_drones_dead = False
-    terminal = False
 
-    max_number_of_seeds = data["max_number_of_seeds"]
-    max_battery_capacity = data["max_battery_capacity"]
-    num_agents = data[data["agent_type"]]["nr_agents"]
-    run_with_graphics = data["graphical"]
-    n_runs = data["n_runs"]
-
-    # Agents & Map
+    # Environment map
     map = Map(MAP)
-    
-    if data["agent_type"] == "Random":
+
+    # Agents
+    drones = []
+    if data["agent_type"] == "RandomAgent":
         agents = [RandomAgent(i, max_number_of_seeds, max_battery_capacity, map) for i in range(num_agents)]
     elif data["agent_type"] == "GreedyAgent":
         agents = [GreedyAgent(i, max_number_of_seeds, max_battery_capacity, map) for i in range(num_agents)]
+    elif data["agent_type"] == "CommunicativeAgent":
+        agents = [CommunicativeAgent(i, max_number_of_seeds, max_battery_capacity, map) for i in range(num_agents)]
+    else:
+        raise Exception("Agent type not recognized")
 
     # Main loop
     for _ in range(n_runs):
 
-        print("run")
-
+        # Create drones
         for agent in agents:
             drones.append(agent.get_drone())
 
-        if run_with_graphics:
-            print('here')
-            n_steps, terminal, all_drones_dead, percentage_of_planted_squares, avg_distance_needed_to_fertile_land, avg_energy_used_per_planted_tree = \
-                run_graphical(map, agents, drones)
-        
-        print('saiu')
+        # Run simulation
+        n_steps, terminal, all_drones_dead, percentage_of_planted_squares, avg_distance_needed_to_fertile_land, avg_energy_used_per_planted_tree = \
+            run_graphical(map, agents, drones, timestep)
 
         # Metrics
         avg_drone_distance.append(np.mean([drone.total_distance for drone in drones]))
@@ -111,6 +108,7 @@ def main():
         avg_distance_needed_to_identify_fertile_land.append(avg_distance_needed_to_fertile_land)
         avg_energy_used.append(avg_energy_used_per_planted_tree)
 
+        # Reset environment and agents for next run
         for agent in agents:
             agent.reset()
         map.reset()
@@ -133,5 +131,6 @@ def main():
             metrics.write(f"{a}, {b}, {c}, {d}, {e}, {f}\n")
 
 
+# Run main
 if __name__ == "__main__":
     main()

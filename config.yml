@@ -1,24 +1,40 @@
 %YAML 1.2
 ---
 
+# Parameters for the simulation
+
+# Number of runs for each simulation
 n_runs: 100
 
-graphical: True
+# Type of agents to be used
+agent_type:  RandomAgent #GreedyAgent #RandomAgent #CommunicativeAgent
 
-log_level: warn
+# Window size for the graphical interface
+map_size: 7 #Maximum is 26
 
-agent_type: GreedyAgent #Random GreedyAgent
-
-map_size: 10
-
+# Max and starting number of seeds for each tree for the drones
 max_number_of_seeds: 10
 
+# Max and starting battery capacity for the drones
 max_battery_capacity: 100
 
-Random:
-  nr_charging_stations: 1
-  nr_agents: 2
+# Number of charging stations in the map
+nr_charging_stations: 3
 
+# Ratio of fertile land
+fertile_land_ratio: 0.7
+
+# Number of agents for the random type
+RandomAgent:
+  nr_agents: 7
+
+# Number of agents for the greedy type
 GreedyAgent:
-  nr_charging_stations: 1
   nr_agents: 5
+
+# Number of agents for the communicative type
+CommunicativeAgent:
+  nr_agents: 3
+
+# Configures the time for each time step in seconds
+timestep: 1

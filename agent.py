@@ -1,10 +1,11 @@
 import abc
 import dataclasses
-from abc import ABC
 import numpy as np
+import env as env
 from grid import Map, Position
 from drone import Drone, Action, Goal
-import env as env
+from abc import ABC
+from strategy import Strategy
 
 
 @dataclasses.dataclass
@@ -14,27 +15,32 @@ class Observation(abc.ABC):
 
 @dataclasses.dataclass
 class RandomObservation(Observation):
-
+    """Defines the observation for the random agent."""
     def __init__(self, map, drone):
         self.adj_locations = map.adj_positions(drone.loc)
-        self.current_energy = drone.battery_available
-        self.current_loc = drone.loc
-        self.current_seeds = drone.nr_seeds
+        self.current_energy = drone.get_battery_available()
+        self.current_loc = drone.get_loc()
+        self.current_seeds = drone.get_nr_seeds()
         self.adj_cell_types = [map.get_cell_type(loc) for loc in self.adj_locations]
 
     def get_adj_locations(self):
+        """Returns the adjacent locations."""
         return self.adj_locations
 
     def get_current_energy(self):
+        """Returns the current energy level."""
         return self.current_energy
 
     def get_current_loc(self):
+        """Returns the current location."""
         return self.current_loc
 
     def get_current_seeds(self):
+        """Returns the current seeds."""
         return self.current_seeds
 
     def get_adj_cell_types(self):
+        """Returns the adjacent cell types."""
         return self.adj_cell_types
 
 
@@ -60,11 +66,12 @@ class Agent(abc.ABC):
 
     @abc.abstractmethod
     def reset(self) -> Action:
+        """Resets the agent to its initial state."""
         pass
 
     def create_drone(self, id: int, max_number_of_seeds: int, max_battery_available: int, map: Map) -> Drone:
-        """Creates a drone with a random location.
-        The drone initial location will not overlap with another drone."""
+        """Creates a drone in a random location.
+        The drone initial location may overlap with another drone."""
 
         possible_drone_locations = [location for location in map.possible_drone_positions]
         location = self.rng.choice(possible_drone_locations)
@@ -76,18 +83,23 @@ class Agent(abc.ABC):
         return drone
 
     def get_drone(self):
+        """Returns the drone."""
         return self.drone
 
     def get_id(self):
+        """Returns the agent id."""
         return self._agent_id
 
     def receive_message(self, message):
+        """Receives a message."""
         self.messages.append(message)
 
     def read_messages(self):
+        """Reads the messages."""
         return self.messages
 
     def reset_messages(self):
+        """Resets the messages."""
         self.messages = []
 
 
@@ -98,14 +110,16 @@ class RandomAgent(Agent):
         super().__init__(agent_id, max_number_of_seeds, max_battery_available, map)
 
     def see(self, map: Map) -> None:
+        """Observes the current state of the environment through its sensors."""
         self.last_observation = RandomObservation(map, self.drone)
-        self.drone.update_map(self.last_observation)
 
     def choose_action(self) -> Action:
+        """Chooses action randomly."""
         action = self.rng.choice(self.drone.actions)
         return action
 
     def reset(self):
+        """Resets the drone associated with the agent."""
         self.drone = self.create_drone(self._agent_id, self.drone.max_number_of_seeds, self.drone.max_battery_available,
                                        self.drone.map)
 
@@ -243,9 +257,10 @@ class GreedyAgent(PathBased):
 
 
 class CommunicativeAgent(Agent):
-
+    """Agent that communicates with other agents."""
     def __init__(self, agent_id: int, max_number_of_seeds: int, max_battery_available: int, map: Map) -> None:
         super().__init__(agent_id, max_number_of_seeds, max_battery_available, map)
+        self.strategies = []
 
     def see(self, map: Map) -> None:
         pass
@@ -255,3 +270,12 @@ class CommunicativeAgent(Agent):
 
     def reset(self) -> None:
         pass
+
+    def add_strategy(self, strategy: Strategy) -> None:
+        self.strategies.append(strategy)
+
+    def remove_strategy(self, strategy: Strategy) -> None:
+        self.strategies.remove(strategy)
+
+    def get_strategies(self) -> list[Strategy]:
+        return self.strategies

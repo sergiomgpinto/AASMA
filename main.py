@@ -3,7 +3,7 @@ import numpy as np
 import pygame
 import yaml
 from typing import Any
-from drone import Drone
+from drone import Drone, Action
 from env import Environment
 from agent import Agent, RandomAgent, GreedyAgent, CommunicativeAgent
 from graphical import EnvironmentPrinter
@@ -32,6 +32,10 @@ def run_graphical(map: Map, agents: list[Agent], drones: list[Drone], timestep: 
             for agent in agents:
                 agent.see(map)
             actions = [agent.choose_action() for agent in agents]
+            for agent, action in zip(agents, actions):
+                if isinstance(agent, CommunicativeAgent) and action == Action.CHARGE:
+                    agent.notify_intention_to_charge(environment.get_timestep())
+
             terminal = environment.step(actions, agents)
             all_drones_dead = all([drone.is_drone_dead() for drone in drones])
 

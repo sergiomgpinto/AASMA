@@ -1,5 +1,8 @@
 import numpy as np
+
+from agent import CommunicativeAgent
 from grid import Map
+from strategy import FertilityFocused, CooperativeCharging, ConsensusDecisionMaking, Strategy
 
 
 class Environment:
@@ -10,21 +13,29 @@ class Environment:
         self.map = map
         self.printer = printer
         self.rng = np.random.default_rng()
+        self.strategies = [FertilityFocused(), CooperativeCharging(), ConsensusDecisionMaking()]
 
     def get_map(self) -> Map:
         """Returns the map of the environment."""
         return self.map
 
+    def get_strategies(self) -> list[Strategy]:
+        """Returns the strategies of the agent."""
+        return self.strategies
+
     def render(self, drones) -> None:
         """Renders the environment."""
         self.printer.print(self, drones)
+
+    def get_timestep(self) -> int:
+        """Returns the current timestep."""
+        return self.timestep
 
     def step(self, actions, agents) -> bool:
         from drone import Action
 
         """Performs a step in the environment."""
 
-        self.timestep += 1
         # Garantees that the charging station only has one drone charging at
         # each timestep.
         CHARGING_STATION_FULL = False
@@ -46,12 +57,17 @@ class Environment:
                         drone.get_map().add_planted_square(p, s)
 
                 elif act == Action.CHARGE:
-                    if CHARGING_STATION_FULL:
-                        continue
-
-                    drone.charge()
-                    CHARGING_STATION_FULL = True
-
+                    if not isinstance(agent, CommunicativeAgent):
+                        if CHARGING_STATION_FULL:
+                            continue
+                        drone.charge()
+                        CHARGING_STATION_FULL = True
+                    else:
+                        agent_id_with_the_highest_priority = agent.get_cooperative_charging_strategy().run(agent, self.timestep)
+                        if agent_id_with_the_highest_priority == agent.get_id():
+                            drone.charge()
+                        else:
+                            continue
                 elif act == Action.STAY:
                     pass
 
@@ -59,6 +75,7 @@ class Environment:
 
             else:
                 drone.set_dead()
+        self.timestep += 1
 
         # Return True if all the initial fertile land squares are planted with trees
         return len(self.map.plantable_squares()) == 0

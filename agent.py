@@ -3,9 +3,9 @@ import numpy as np
 import random
 from communication import Communication, MapUpdatePayload, EnergyAndSeedLevelsStatusPayload, DroneLocationPayload, \
     MapUpdateMessage, EnergyAndSeedLevelsStatusMessage, DroneLocationMessage, ChargingStatusMessage, \
-    DronePlantingMessage
+    DronePlantingMessage, ChargingStatusPayload
 from grid import Map, Position
-from strategy import Strategy, FertilityFocused, CooperativeCharging, ConsensusDecisionMaking
+from strategy import FertilityFocused, CooperativeCharging, ConsensusDecisionMaking
 
 
 class Observation(abc.ABC):
@@ -323,13 +323,21 @@ class CommunicativeAgent(Agent):
 
     def __init__(self, agent_id: int, max_number_of_seeds: int, max_battery_available: int, map: Map) -> None:
         super().__init__(agent_id, max_number_of_seeds, max_battery_available, map)
-        # TODO: Make this changable through config file
-        self.strategies = [FertilityFocused(), CooperativeCharging(), ConsensusDecisionMaking()]
         self.communication = None
         self.energy_level_and_seed_status = {}
         self.charging_status = {}
         self.drone_planting = {}
         self.drone_location = {}
+        self.strategies = {strategy.__name__: strategy for strategy in
+                           [FertilityFocused, CooperativeCharging, ConsensusDecisionMaking]}
+
+    def get_energy_level_and_seed_status(self):
+        """Returns the energy level and seed status of all the agents."""
+        return self.energy_level_and_seed_status
+
+    def get_charging_status(self):
+        """Returns the charging status of all the agents."""
+        return self.charging_status
 
     def see(self, map: Map) -> None:
         self.last_observation = CommunicativeObservation(map, self.drone)
@@ -367,6 +375,7 @@ class CommunicativeAgent(Agent):
         for i in range(len(adj_positions)):
             self.drone.get_map().update_position(adj_positions[i], adj_cell_types[i])
         self.drone.get_map().update_position(location, location_cell_type)
+        self.drone.get_map().update_planted_squares()
 
     def update_energy_and_seed_level_status(self, message: EnergyAndSeedLevelsStatusMessage) -> None:
         """Updates drone's energy and seed level."""
@@ -389,7 +398,6 @@ class CommunicativeAgent(Agent):
         payload = message.get_payload()
         timestep = payload.get_timestep()
         self.charging_status[sender_id] = timestep
-        # TODO may become more complex
 
     def update_drone_planting(self, message: DronePlantingMessage) -> None:
         """Updates drone's planting status."""
@@ -406,22 +414,6 @@ class CommunicativeAgent(Agent):
         self.drone_location[sender_id] = drone_location
 
     def choose_action(self):
-        """from drone import Action, Goal
-        goal = None
-        energy_to_station = 0
-
-        # Charge goal
-        if self.drone.get_map().find_charging_station() is not None:
-            if self.drone.get_battery_available() <= energy_to_station * 2:
-                goal = Goal.CHARGE
-        else:
-            if self.drone.get_battery_available() < self.drone.get_max_battery_available() * 0.5:
-                goal = Goal.CHARGE
-
-        # Charge seeds
-        if self.drone.get_nr_seeds().count(0) == 1:
-            goal = Goal.CHARGE
-        """
 
         from drone import Action
 
@@ -437,8 +429,7 @@ class CommunicativeAgent(Agent):
         if path_size_to_cs == 0:
             return Action.CHARGE
 
-        # Greedy because it assumes once it gets to the charging station it will be able to charge
-        if int(path_size_to_cs * 1.1) == self.drone.get_battery_available():
+        if int(path_size_to_cs * 1.05) == self.drone.get_battery_available():
             return go_to_charging_station(self.drone)
         else:
             return plant_nearest_square(self.drone)
@@ -448,18 +439,6 @@ class CommunicativeAgent(Agent):
                                        self.drone.map)
         self.communication = None
 
-    def add_strategy(self, strategy: Strategy) -> None:
-        """Adds a strategy to the agent."""
-        self.strategies.append(strategy)
-
-    def remove_strategy(self, strategy: Strategy) -> None:
-        """Removes a strategy from the agent."""
-        self.strategies.remove(strategy)
-
-    def get_strategies(self) -> list[Strategy]:
-        """Returns the strategies of the agent."""
-        return self.strategies
-
     def set_agents(self, agents: list[Agent]) -> None:
         """Sets the agents of the agent."""
         self.communication = Communication(self._agent_id, agents)
@@ -467,6 +446,18 @@ class CommunicativeAgent(Agent):
     def get_communication(self):
         """Returns the communication of the agent."""
         return self.communication
+
+    def get_cooperative_charging_strategy(self):
+        """Returns the cooperative charging strategy of the agent."""
+        return self.strategies['CooperativeCharging']
+
+    def get_fertility_focused_strategy(self):
+        """Returns the fertility focused strategy of the agent."""
+        return self.strategies['FertilityFocused']
+
+    def get_consensus_decision_making_strategy(self):
+        """Returns the consensus decision making strategy of the agent."""
+        return self.strategies['ConsensusDecisionMaking']
 
     def send_sensors_messages(self, observation: CommunicativeObservation) -> None:
         """Sends the sensors status to the other agents."""
@@ -486,7 +477,7 @@ class CommunicativeAgent(Agent):
         payload = DroneLocationPayload(location)
         self.get_communication().send_drone_location(payload)
 
-    def send_action_message(self) -> None:
-        """Sends the action to the other agents."""
-        # FIXME
-        pass
+    def notify_intention_to_charge(self, timestep) -> None:
+        payload = ChargingStatusPayload(timestep)
+        self.get_communication().send_charging_status(payload)
+

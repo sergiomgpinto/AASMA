@@ -29,9 +29,16 @@ class DefaultMap:
     def __init__(self):
         with open("./config.yml", "r") as fp:
             data = yaml.safe_load(fp)
+
         size = data["map_size"]
         fertile_land_ratio = data["fertile_land_ratio"]
         nr_charging_stations = data["nr_charging_stations"]
+
+        if size < 7 or size > 26:
+            raise ValueError("Map size inserted in the config file must be between 7 and 26, both inclusive.")
+        if fertile_land_ratio < 0.5 or fertile_land_ratio > 0.85:
+            raise ValueError("Fertile land ratio inserted in the config file must be between 0.5 and 0.85, both inclusive.")
+
         probabilities = [0.1, 0.1, 0.1, 0.1, 0.6]
         self.integer_map = np.random.choice([0, 1, 2, 3, 4], (size, size), p=probabilities)
 
@@ -55,3 +62,4 @@ class DefaultMap:
 
 # Global map variable
 MAP = DefaultMap().MAP
+

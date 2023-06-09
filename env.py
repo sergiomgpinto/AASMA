@@ -10,17 +10,11 @@ class Environment:
         self.occupied_squares_with_drones = []
         self.map = map
         self.printer = printer
-        self.planted_squares = self.map.planted_squares()
         self.rng = np.random.default_rng()
-        # self.chargingstations = self.map.charging_stations()
 
     def get_map(self) -> Map:
         """Returns the map of the environment."""
         return self.map
-
-    def get_planted_squares(self) -> List:
-        """Returns the planted squares of the environment."""
-        return self.planted_squares
 
     def render(self, drones) -> None:
         """Renders the environment."""
@@ -40,13 +34,13 @@ class Environment:
                 if act in (Action.UP, Action.DOWN, Action.LEFT, Action.RIGHT,
                            Action.UP_RIGHT, Action.UP_LEFT, Action.DOWN_RIGHT, Action.DOWN_LEFT):
                     drone.move(act)
-                    print("passei")
                 elif act == Action.PLANT:
-                    p = drone.loc
+                    p = drone.get_loc()
                     planted_with_sucess, s = drone.plant(self.map)
                     if planted_with_sucess:
                         self.map.change_cell_type(p, s)
-                        self.planted_squares.append((p, s))
+                        self.map.add_planted_square(p, s)
+                        drone.get_map().add_planted_square(p, s)
 
                 elif act == Action.CHARGE:
                     drone.charge()

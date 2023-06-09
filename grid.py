@@ -89,10 +89,16 @@ class Map:
         self.initial_grid = np.copy(grid)
         self.initial_number_of_plantable_squares = np.count_nonzero(self.initial_grid == Cell.FERTILE_LAND)
         self.grid = np.copy(grid)
+        self.planted_squares = self.calculate_planted_squares()
 
     def reset(self):
         """Resets the map to its initial state."""
         self.grid = np.copy(self.initial_grid)
+        self.planted_squares = self.calculate_planted_squares()
+
+    def update_planted_squares(self):
+        """Updates the planted squares."""
+        self.planted_squares = self.calculate_planted_squares()
 
     def get_initial_number_of_plantable_squares(self):
         """Returns the initial number of plantable squares."""
@@ -105,6 +111,14 @@ class Map:
     def get_initial_grid(self):
         """Returns the initial grid."""
         return self.initial_grid
+
+    def get_planted_squares(self) -> List:
+        """Returns the planted squares of the environment."""
+        return self.planted_squares
+
+    def add_planted_square(self, p: Position, s: Cell):
+        """Adds a planted square."""
+        self.planted_squares.append((p, s))
 
     @property
     def height(self):
@@ -228,7 +242,7 @@ class Map:
                 plantable_positions.append(p)
         return plantable_positions
 
-    def planted_squares(self) -> List[tuple[Position, Cell]]:
+    def calculate_planted_squares(self) -> list[tuple[Position, Cell]]:
         """
         Looks at the grid and returns fertile land squares that have already
         been planted.
@@ -247,6 +261,7 @@ class Map:
         for p in self.all_positions:
             if self.is_charging_station(p):
                 return p
+        return None
 
     def number_of_planted_squares(self) -> int:
         """
@@ -276,3 +291,5 @@ class Map:
             return Cell.PINE_TREE
         elif id == 2:
             return Cell.EUCALYPTUS_TREE
+        else:
+            return random.choice([Cell.OAK_TREE, Cell.PINE_TREE, Cell.EUCALYPTUS_TREE])

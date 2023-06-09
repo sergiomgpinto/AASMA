@@ -88,6 +88,7 @@ class Drone:
         # Every type of agent starts without knowing the map
         self.map = Map(np.full((data["map_size"], data["map_size"]), Cell.UNKNOWN))
         self.charging_station = charging_station_loc
+        self.map.get_grid()[charging_station_loc.y, charging_station_loc.x] = Cell.CHARGING_STATION
 
     def receive_message(self, message):
         """Receives a message."""
@@ -116,6 +117,10 @@ class Drone:
     def get_map(self):
         """Returns drone's map."""
         return self.map
+
+    def get_max_battery_available(self):
+        """Returns drone's max battery available."""
+        return self.max_battery_available
 
     # TODO: remove this method
     def get_charging_station(self):
@@ -150,9 +155,12 @@ class Drone:
                 self.energy_per_planted_tree.append(self.energy_used_before_planted_tree)
                 self.energy_used_before_planted_tree = 0
                 return True, map.map_id_to_cell_type(tree_id)
+            else:
+                # Unknown here means nothing, it's just a filler
+                return False, Cell.UNKNOWN
         else:
-            # If the drone is not in a fertile land, it will not plant anything
-            return False, None
+            # Unknown here means nothing, it's just a filler
+            return False, Cell.UNKNOWN
 
     def move(self, action: Action):
         """Move a drone according to an action."""
@@ -203,8 +211,11 @@ class Drone:
         """Updates drone's map."""
         adj_positions = observation.get_adj_locations()
         cell_types = observation.get_adj_cell_types()
+        location = observation.get_current_loc()
+        location_cell_type = observation.get_current_cell_type()
         for i in range(len(adj_positions)):
             self.map.update_position(adj_positions[i], cell_types[i])
+        self.map.update_position(location, location_cell_type)
 
     def update_map_coomunicative(self, observation: CommunicativeObservation):
         """Updates drone's map."""
@@ -269,4 +280,10 @@ class Drone:
                 drone_location = payload.get_drone_location()
                 self.drone_location[sender_id] = drone_location
                 self.messages.remove(message)
+
+    def calculate_distance_to_charging_station(self):
+        """Calculates the distance to the charging station."""
+        chargingstation_location = self.map.find_charging_station()
+        current_location = self.loc
+        return
 

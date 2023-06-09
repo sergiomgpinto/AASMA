@@ -44,7 +44,7 @@ def run_graphical(map: Map, agents: list[Agent], drones: list[Drone], timestep: 
             if all_drones_dead:
                 break
 
-            #time.sleep(timestep)
+            time.sleep(timestep)
 
     # Metrics
     percentage_of_planted_squares = get_percentage_of_planted_squares(map)
@@ -63,7 +63,16 @@ def main():
     max_battery_capacity = data["max_battery_capacity"]
     num_agents = data[data["agent_type"]]["nr_agents"]
     n_runs = data["n_runs"]
+
+    if max_number_of_seeds < 5:
+        raise ValueError("Max number of seeds inserted in the config file must be greater than 5 inclusive.")
+    if max_battery_capacity <= 1.5 * data["map_size"]:
+        raise ValueError("Max battery capacity inserted in the config file must be greater than 1.5 * map_size.")
+    if n_runs <= 0:
+        raise ValueError("Number of runs inserted in the config file must be greater than 0.")
     timestep = data["timestep"]
+    if timestep < 0:
+        raise ValueError("Timestep inserted in the config file must be greater than 0 inclusive.")
 
     # Variables to store metrics
     all_n_steps = []

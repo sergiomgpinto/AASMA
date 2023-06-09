@@ -20,7 +20,8 @@ class EnvironmentPrinter(Printer):
 
     def print(self, env, drones) -> None:
         """Prints the environment."""
-        env_grid = env.get_map().get_grid()
+        local_map = env.get_map()
+        env_grid = local_map.get_grid()
         n_cols, n_rows = env_grid.shape
 
         cell_height = self.__height // n_cols
@@ -45,19 +46,19 @@ class EnvironmentPrinter(Printer):
         obstacle_printer = ObstaclePrinter(
             screen=self.__screen, cell_width=cell_width, cell_height=cell_height,
         )
-
-        for pos in env.get_map().all_positions:
-            if env.get_map().is_fertile_land(pos):
+        local_map = env.get_map()
+        for pos in local_map.all_positions:
+            if local_map.is_fertile_land(pos):
                 fertile_land_printer.print(pos)
-            elif env.get_map().is_oak_tree(pos):
+            elif local_map.is_oak_tree(pos):
                 oak_tree_printer.print(pos)
-            elif env.get_map().is_pine_tree(pos):
+            elif local_map.is_pine_tree(pos):
                 pine_tree_printer.print(pos)
-            elif env.get_map().is_eucalyptus_tree(pos):
+            elif local_map.is_eucalyptus_tree(pos):
                 eucalyptus_tree_printer.print(pos)
-            elif env.get_map().is_charging_station(pos):
+            elif local_map.is_charging_station(pos):
                 charging_station_printer.print(pos)
-            elif env.get_map().is_obstacle(pos):
+            elif local_map.is_obstacle(pos):
                 obstacle_printer.print(pos)
             else:
                 raise ValueError(f"Position not road or sidewalk: {pos}")
@@ -77,7 +78,7 @@ class EnvironmentPrinter(Printer):
 
     def add_colour_to_planted_squares(self, env):
         """Adds colour to planted squares."""
-        planted_squares = env.get_planted_squares()
+        planted_squares = env.get_map().get_planted_squares()
         env_grid = env.get_map().get_grid()
         n_cols, n_rows = env_grid.shape
 

@@ -1,5 +1,5 @@
 import numpy as np
-from grid import Position
+from grid import Position, Cell
 
 
 class Payload:
@@ -10,9 +10,19 @@ class Payload:
 class MapUpdatePayload(Payload):
     """ Payload for updating the map."""
 
-    def __init__(self, adj_postions: np.array, adj_cell_types: np.array):
+    def __init__(self, adj_postions: np.array, adj_cell_types: np.array, current_location: Position, current_cell_type: Cell):
         self.adj_positions = adj_postions
         self.adj_cell_types = adj_cell_types
+        self.current_location = current_location
+        self.current_cell_type = current_cell_type
+
+    def get_current_location(self):
+        """ Returns the current location."""
+        return self.current_location
+
+    def get_current_cell_type(self):
+        """ Returns the current cell type."""
+        return self.current_cell_type
 
     def get_adj_positions(self):
         """ Returns the adjacent positions."""
@@ -142,8 +152,7 @@ class Communication:
         for agent in self.agents:
             if agent.get_id() != self.sender_id and isinstance(agent, CommunicativeAgent):
                 message = MapUpdateMessage(self.sender_id, agent.get_id(), payload)
-                drone = agent.get_drone()
-                drone.receive_message(message)
+                agent.receive_message(message)
 
     def send_energy_and_seed_levels_status(self, payload: EnergyAndSeedLevelsStatusPayload):
         from agent import CommunicativeAgent
@@ -151,8 +160,7 @@ class Communication:
         for agent in self.agents:
             if agent.get_id() != self.sender_id and isinstance(agent, CommunicativeAgent):
                 message = EnergyAndSeedLevelsStatusMessage(self.sender_id, agent.get_id(), payload)
-                drone = agent.get_drone()
-                drone.receive_message(message)
+                agent.receive_message(message)
 
     def send_drone_location(self, payload: DroneLocationPayload):
         from agent import CommunicativeAgent
@@ -160,8 +168,7 @@ class Communication:
         for agent in self.agents:
             if agent.get_id() != self.sender_id and isinstance(agent, CommunicativeAgent):
                 message = DroneLocationMessage(self.sender_id, agent.get_id(), payload)
-                drone = agent.get_drone()
-                drone.receive_message(message)
+                agent.receive_message(message)
 
     def send_charging_status(self, payload: ChargingStatusPayload):
         from agent import CommunicativeAgent
@@ -169,8 +176,7 @@ class Communication:
         for agent in self.agents:
             if agent.get_id() != self.sender_id and isinstance(agent, CommunicativeAgent):
                 message = ChargingStatusMessage(self.sender_id, agent.get_id(), payload)
-                drone = agent.get_drone()
-                drone.receive_message(message)
+                agent.receive_message(message)
 
     def send_drone_planting(self, payload: DronePlantingPayload):
         from agent import CommunicativeAgent
@@ -178,5 +184,4 @@ class Communication:
         for agent in self.agents:
             if agent.get_id() != self.sender_id and isinstance(agent, CommunicativeAgent):
                 message = DronePlantingMessage(self.sender_id, agent.get_id(), payload)
-                drone = agent.get_drone()
-                drone.receive_message(message)
+                agent.receive_message(message)

@@ -7,10 +7,10 @@
 n_runs: 100
 
 # Type of agents to be used
-agent_type: GreedyAgent # RandomAgent #CommunicativeAgent
+agent_type: CommunicativeAgent #GreedyAgent # RandomAgent #CommunicativeAgent
 
 # Window size for the graphical interface
-map_size: 26 #Maximum is 26, minimum is 7, recommended is 26
+map_size: 15 #Maximum is 26, minimum is 7, recommended is 26
 
 # Max and starting number of seeds for each tree for the drones
 max_number_of_seeds: 5 # Minimum is 5, recommended is 10
@@ -34,7 +34,7 @@ GreedyAgent:
 
 # Number of agents for the communicative type
 CommunicativeAgent:
-  nr_agents: 2 # non negative value
+  nr_agents: 3 # non negative value
 
 # Configures the time for each time step in seconds
 timestep: 0 # non negative value

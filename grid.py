@@ -293,3 +293,19 @@ class Map:
             return Cell.EUCALYPTUS_TREE
         else:
             return random.choice([Cell.OAK_TREE, Cell.PINE_TREE, Cell.EUCALYPTUS_TREE])
+
+    def is_unknown(self, p: Position) -> bool:
+        """
+        Returns True if the position is unknown, False otherwise.
+        """
+        return self.grid[p.y, p.x] == Cell.UNKNOWN
+
+    def get_unknown_cells(self) -> List[Position]:
+        """
+        Returns a list of unknown cells.
+        """
+        unknown_cells = []
+        for p in self.all_positions:
+            if self.is_unknown(p):
+                unknown_cells.append(p)
+        return unknown_cells

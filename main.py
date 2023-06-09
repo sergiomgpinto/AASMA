@@ -125,7 +125,6 @@ def main():
 
         # Terminal conditions for a run
         if all_drones_dead:
-            all_drones_dead = False
             continue
         if terminal:
             break

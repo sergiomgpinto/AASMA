@@ -1,5 +1,4 @@
 import numpy as np
-from typing import List
 from grid import Map
 
 
@@ -20,12 +19,15 @@ class Environment:
         """Renders the environment."""
         self.printer.print(self, drones)
 
-    def step(self, actions: List["Action"], agents: List["Agent"]) -> bool:
+    def step(self, actions, agents) -> bool:
         from drone import Action
 
         """Performs a step in the environment."""
 
         self.timestep += 1
+        # Garantees that the charging station only has one drone charging at
+        # each timestep.
+        CHARGING_STATION_FULL = False
 
         # Perform agents actions
         for agent, act in zip(agents, actions):
@@ -34,6 +36,7 @@ class Environment:
                 if act in (Action.UP, Action.DOWN, Action.LEFT, Action.RIGHT,
                            Action.UP_RIGHT, Action.UP_LEFT, Action.DOWN_RIGHT, Action.DOWN_LEFT):
                     drone.move(act)
+
                 elif act == Action.PLANT:
                     p = drone.get_loc()
                     planted_with_sucess, s = drone.plant(self.map)
@@ -43,7 +46,11 @@ class Environment:
                         drone.get_map().add_planted_square(p, s)
 
                 elif act == Action.CHARGE:
+                    if CHARGING_STATION_FULL:
+                        continue
+
                     drone.charge()
+                    CHARGING_STATION_FULL = True
 
                 elif act == Action.STAY:
                     pass

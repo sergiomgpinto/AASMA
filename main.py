@@ -70,8 +70,8 @@ def main():
 
     if max_number_of_seeds < 5:
         raise ValueError("Max number of seeds inserted in the config file must be greater than 5 inclusive.")
-    if max_battery_capacity <= 1.5 * data["map_size"]:
-        raise ValueError("Max battery capacity inserted in the config file must be greater than 1.5 * map_size.")
+    if max_battery_capacity < 2 * data["map_size"]:
+        raise ValueError("Max battery capacity inserted in the config file must be greater than 2 * map_size.")
     if n_runs <= 0:
         raise ValueError("Number of runs inserted in the config file must be greater than 0.")
     timestep = data["timestep"]

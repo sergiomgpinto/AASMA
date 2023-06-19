@@ -6,13 +6,13 @@ class Strategy(abc.ABC):
     """Strategy class for the agents"""
 
     @abc.abstractmethod
-    def run(self, agent) -> Any:
+    def run(agent, env_timestep) -> Any:
         """Runs the strategy."""
         pass
 
 
 class CooperativeCharging(Strategy):
-
+    """Cooperative charging strategy."""
     def run(agent, env_timestep) -> int:
         """Runs the cooperative charging strategy."""
         resources_dict = agent.get_energy_level_and_seed_status()
@@ -30,14 +30,3 @@ class CooperativeCharging(Strategy):
                                                                    float('inf')) == min_battery_level]
 
         return min(min_battery_agents)
-
-
-class FertilityFocused(Strategy):
-
-    def run(self, agent) -> Any:
-        pass
-
-
-class ConsensusDecisionMaking(Strategy):
-    def run(self, agent) -> Any:
-        pass

@@ -14,9 +14,12 @@ from default import MAP
 
 
 def run_graphical(map: Map, agents: list[Agent], drones: list[Drone], timestep: any) -> tuple[int, bool, bool | Any, float | Any, Any, Any]:
+    """ Runs the simulation in a graphical environment."""
     with EnvironmentPrinter(map.get_initial_grid()) as printer:
+        # Environment variable
         environment = Environment(printer, map)
 
+        # Shows the environment in the window.
         environment.render(drones)
 
         running = True
@@ -29,14 +32,21 @@ def run_graphical(map: Map, agents: list[Agent], drones: list[Drone], timestep: 
                 if event.type == pygame.QUIT:
                     running = False
 
+            # Agents observing the environment.
             for agent in agents:
                 agent.see(map)
+
+            # Agents choose actions.
             actions = [agent.choose_action() for agent in agents]
+
+            # Notifies the others agents that he is going to charge.
             for agent, action in zip(agents, actions):
                 if isinstance(agent, CommunicativeAgent) and action == Action.CHARGE:
                     agent.notify_intention_to_charge(environment.get_timestep())
 
             terminal = environment.step(actions, agents)
+
+            # Drones are dead if they reach 0 energy before reaching a charging station.
             all_drones_dead = all([drone.is_drone_dead() for drone in drones])
 
             n_steps += 1

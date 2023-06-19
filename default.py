@@ -5,6 +5,7 @@ from scipy.ndimage.filters import convolve
 
 
 def blur_map(map):
+    """Blurs the map."""
     kernel = np.ones((3, 3))
 
     blurred_map = convolve(map, kernel, mode='constant', cval=1.0)

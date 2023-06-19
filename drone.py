@@ -2,8 +2,6 @@ import enum
 import numpy as np
 import yaml
 from agent import GreedyObservation, CommunicativeObservation
-from communication import MapUpdateMessage, EnergyAndSeedLevelsStatusMessage, ChargingStatusMessage, \
-    DronePlantingMessage, DroneLocationMessage
 from grid import Map
 from grid import Cell
 
@@ -203,7 +201,7 @@ class Drone:
     def update_map_coomunicative(self, observation: CommunicativeObservation):
         """Updates drone's map."""
 
-        # Own observations
+        # Update map with own observations.
         adj_positions = observation.get_adj_locations()
         cell_types = observation.get_adj_cell_types()
         location = observation.get_current_loc()
@@ -211,6 +209,3 @@ class Drone:
         for i in range(len(adj_positions)):
             self.map.update_position(adj_positions[i], cell_types[i])
         self.map.update_position(location, location_cell_type)
-
-
-

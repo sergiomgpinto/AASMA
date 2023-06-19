@@ -1,8 +1,6 @@
 import numpy as np
-
 from agent import CommunicativeAgent
 from grid import Map
-from strategy import FertilityFocused, CooperativeCharging, ConsensusDecisionMaking, Strategy
 
 
 class Environment:
@@ -13,15 +11,10 @@ class Environment:
         self.map = map
         self.printer = printer
         self.rng = np.random.default_rng()
-        self.strategies = [FertilityFocused(), CooperativeCharging(), ConsensusDecisionMaking()]
 
     def get_map(self) -> Map:
         """Returns the map of the environment."""
         return self.map
-
-    def get_strategies(self) -> list[Strategy]:
-        """Returns the strategies of the agent."""
-        return self.strategies
 
     def render(self, drones) -> None:
         """Renders the environment."""
@@ -37,15 +30,17 @@ class Environment:
         """Performs a step in the environment."""
 
         # Garantees that the charging station only has one drone charging at
-        # each timestep.
+        # each timestep. Only valid for Random and Greedy agents.
+        # Since for the Communicative agent they communicate with each other.
         CHARGING_STATION_FULL = False
 
         # Perform agents actions
         for agent, act in zip(agents, actions):
             drone = agent.get_drone()
-            if drone.get_battery_available() != 0:
+            if drone.get_battery_available() != 0: # Unless the drone has energy, it cant do actions.
                 if act in (Action.UP, Action.DOWN, Action.LEFT, Action.RIGHT,
                            Action.UP_RIGHT, Action.UP_LEFT, Action.DOWN_RIGHT, Action.DOWN_LEFT):
+                    # Enters if a moving action was chosen.
                     drone.move(act)
 
                 elif act == Action.PLANT:
@@ -63,6 +58,7 @@ class Environment:
                         drone.charge()
                         CHARGING_STATION_FULL = True
                     else:
+                        # Cooperative charging strategy.
                         agent_id_with_the_highest_priority = agent.get_cooperative_charging_strategy().run(agent, self.timestep)
                         if agent_id_with_the_highest_priority == agent.get_id():
                             drone.charge()

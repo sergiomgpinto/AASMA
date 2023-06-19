@@ -5,7 +5,7 @@ from communication import Communication, MapUpdatePayload, EnergyAndSeedLevelsSt
     MapUpdateMessage, EnergyAndSeedLevelsStatusMessage, DroneLocationMessage, ChargingStatusMessage, \
     DronePlantingMessage, ChargingStatusPayload
 from grid import Map, Position
-from strategy import FertilityFocused, CooperativeCharging, ConsensusDecisionMaking
+from strategy import CooperativeCharging
 
 
 class Observation(abc.ABC):
@@ -16,7 +16,8 @@ class RandomObservation(Observation):
     """Defines the observation for the random agent."""
 
     def __init__(self):
-        # TODO rethink we need stuff here
+        # Technically the agent could read the environment and state but since we will not use it,
+        # we decided not to implement it.
         pass
 
 
@@ -30,8 +31,6 @@ class GreedyObservation(Observation):
         self.current_cell_type = map.get_cell_type(self.current_loc)
         self.current_seeds = drone.get_nr_seeds()
         self.adj_cell_types = [map.get_cell_type(loc) for loc in self.adj_locations]
-        # self.distance_to_fertile_land = drone.get_distance_needed_to_identify_fertile_land()
-        # self.distance_between_fertile_lands = drone.get_distance_between_fertile_lands()
         self.avg_energy_used_per_planted_tree = drone.get_avg_of_drone_energy_used_per_planted_tree()
 
     def get_adj_locations(self):
@@ -57,14 +56,6 @@ class GreedyObservation(Observation):
     def get_adj_cell_types(self):
         """Returns the adjacent cell types."""
         return self.adj_cell_types
-
-    def get_distance_to_fertile_land(self):
-        """Returns the distance to the nearest fertile land."""
-        return self.distance_to_fertile_land
-
-    def get_distance_between_fertile_lands(self):
-        """Returns the distance between fertile lands."""
-        return self.distance_between_fertile_lands
 
     def get_avg_energy_used_per_planted_tree(self):
         """Returns the average energy used per planted tree."""
@@ -212,6 +203,7 @@ def breadth_first_search(source: Position, target: Position) -> list[Position]:
 
 
 def move_in_path_and_act(agent_drone, path: list[Position], goal):
+    """Returns the action to take to move in the path."""
     from drone import Action, Goal
 
     if len(path) == 1:
@@ -245,6 +237,7 @@ def move_in_path_and_act(agent_drone, path: list[Position], goal):
 
 
 def go_to_charging_station(drone):
+    """Returns the action to take to go to the charging station."""
     from drone import Goal
 
     shortest_path = breadth_first_search(drone.get_loc(), drone.get_charging_station())
@@ -254,6 +247,7 @@ def go_to_charging_station(drone):
 
 
 def plant_nearest_square(drone):
+    """Returns the action to take to plant the nearest square."""
     from drone import Action, Goal
 
     plantable_squares = drone.get_map().plantable_squares()
@@ -329,7 +323,7 @@ class CommunicativeAgent(Agent):
         self.drone_planting = {}
         self.drone_location = {}
         self.strategies = {strategy.__name__: strategy for strategy in
-                           [FertilityFocused, CooperativeCharging, ConsensusDecisionMaking]}
+                           [CooperativeCharging]}
 
     def get_energy_level_and_seed_status(self):
         """Returns the energy level and seed status of all the agents."""
@@ -451,14 +445,6 @@ class CommunicativeAgent(Agent):
         """Returns the cooperative charging strategy of the agent."""
         return self.strategies['CooperativeCharging']
 
-    def get_fertility_focused_strategy(self):
-        """Returns the fertility focused strategy of the agent."""
-        return self.strategies['FertilityFocused']
-
-    def get_consensus_decision_making_strategy(self):
-        """Returns the consensus decision making strategy of the agent."""
-        return self.strategies['ConsensusDecisionMaking']
-
     def send_sensors_messages(self, observation: CommunicativeObservation) -> None:
         """Sends the sensors status to the other agents."""
         adj_locations = observation.get_adj_locations()
@@ -478,6 +464,7 @@ class CommunicativeAgent(Agent):
         self.get_communication().send_drone_location(payload)
 
     def notify_intention_to_charge(self, timestep) -> None:
+        """Notifies the other agents that the drone is going to charge."""
         payload = ChargingStatusPayload(timestep)
         self.get_communication().send_charging_status(payload)
 

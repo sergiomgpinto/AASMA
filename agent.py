@@ -1,316 +1,470 @@
 import abc
-import drone
-import grid
-import env as env
 import numpy as np
-from typing import List
-from abc import ABC
+import random
+from communication import Communication, MapUpdatePayload, EnergyAndSeedLevelsStatusPayload, DroneLocationPayload, \
+    MapUpdateMessage, EnergyAndSeedLevelsStatusMessage, DroneLocationMessage, ChargingStatusMessage, \
+    DronePlantingMessage, ChargingStatusPayload
+from grid import Map, Position
+from strategy import CooperativeCharging
 
 
-class Base(abc.ABC):
+class Observation(abc.ABC):
+    """Defines the observation for a given agent."""
+
+
+class RandomObservation(Observation):
+    """Defines the observation for the random agent."""
+
+    def __init__(self):
+        # Technically the agent could read the environment and state but since we will not use it,
+        # we decided not to implement it.
+        pass
+
+
+class GreedyObservation(Observation):
+    """Defines the observation for the greedy agent."""
+
+    def __init__(self, map, drone):
+        self.adj_locations = map.adj_positions(drone.loc)
+        self.current_energy = drone.get_battery_available()
+        self.current_loc = drone.get_loc()
+        self.current_cell_type = map.get_cell_type(self.current_loc)
+        self.current_seeds = drone.get_nr_seeds()
+        self.adj_cell_types = [map.get_cell_type(loc) for loc in self.adj_locations]
+        self.avg_energy_used_per_planted_tree = drone.get_avg_of_drone_energy_used_per_planted_tree()
+
+    def get_adj_locations(self):
+        """Returns the adjacent locations."""
+        return self.adj_locations
+
+    def get_current_cell_type(self):
+        """Returns the current cell type."""
+        return self.current_cell_type
+
+    def get_current_energy(self):
+        """Returns the current energy level."""
+        return self.current_energy
+
+    def get_current_loc(self):
+        """Returns the current location."""
+        return self.current_loc
+
+    def get_current_seeds(self):
+        """Returns the current seeds."""
+        return self.current_seeds
+
+    def get_adj_cell_types(self):
+        """Returns the adjacent cell types."""
+        return self.adj_cell_types
+
+    def get_avg_energy_used_per_planted_tree(self):
+        """Returns the average energy used per planted tree."""
+        return self.avg_energy_used_per_planted_tree
+
+
+class CommunicativeObservation(Observation):
+    """Defines the observation for the communicative agent."""
+
+    def __init__(self, map, drone):
+        self.adj_locations = map.adj_positions(drone.loc)
+        self.current_energy = drone.get_battery_available()
+        self.current_loc = drone.get_loc()
+        self.current_cell_type = map.get_cell_type(self.current_loc)
+        self.current_seeds = drone.get_nr_seeds()
+        self.adj_cell_types = [map.get_cell_type(loc) for loc in self.adj_locations]
+
+    def get_adj_locations(self):
+        """Returns the adjacent locations."""
+        return self.adj_locations
+
+    def get_current_energy(self):
+        """Returns the current energy level."""
+        return self.current_energy
+
+    def get_current_cell_type(self):
+        """Returns the current cell type."""
+        return self.current_cell_type
+
+    def get_current_loc(self):
+        """Returns the current location."""
+        return self.current_loc
+
+    def get_current_seeds(self):
+        """Returns the current seeds."""
+        return self.current_seeds
+
+    def get_adj_cell_types(self):
+        """Returns the adjacent cell types."""
+        return self.adj_cell_types
+
+    def get_loc(self):
+        """Returns the location."""
+        return self.current_loc
+
+
+class Agent(abc.ABC):
     """Base class for all agents."""
 
-    _last_observation: env.Observation
-
-    def see(self, obs: env.Observation) -> None:
-        """Observes the current state of the environment through its sensores."""
-        self._last_observation = obs
+    def __init__(self, agent_id: int, max_number_of_seeds: int, max_battery_available: int, map: Map) -> None:
+        self.last_observation = None
+        self._agent_id = agent_id
+        self.rng = np.random.default_rng()
+        self.drone = self.create_drone(agent_id, max_number_of_seeds, max_battery_available, map)
 
     @abc.abstractmethod
-    def act(self) -> env.Action:
+    def see(self, map: Map) -> None:
+        """Observes the current state of the environment through its sensors."""
+        pass
+
+    @abc.abstractmethod
+    def choose_action(self):
         """Acts based on the last observation and any other information."""
         pass
 
+    @abc.abstractmethod
+    def reset(self):
+        """Resets the agent to its initial state."""
+        pass
 
-class Random(Base):
+    def create_drone(self, id: int, max_number_of_seeds: int, max_battery_available: int, map: Map):
+        from drone import Drone
+        """Creates a drone in a random location.
+        The drone initial location may overlap with another drone."""
+
+        possible_drone_locations = [location for location in map.possible_drone_positions]
+        location = self.rng.choice(possible_drone_locations)
+        drone = Drone(loc=location, id=id, max_number_of_seeds=max_number_of_seeds,
+                      max_battery_available=max_battery_available, distance_between_fertile_lands=0,
+                      distance_needed_to_identify_fertile_land=list(), energy_per_planted_tree=list(),
+                      charging_station_loc=map.find_charging_station())
+
+        return drone
+
+    def get_drone(self):
+        """Returns the drone."""
+        return self.drone
+
+    def get_id(self):
+        """Returns the agent id."""
+        return self._agent_id
+
+
+class RandomAgent(Agent):
     """Baseline agent that randomly chooses an action at each timestep."""
 
-    def __init__(self, seed: int = None) -> None:
-        self._rng = np.random.default_rng(seed=seed)
-        self._actions = [
-            env.Action.UP,
-            env.Action.DOWN,
-            env.Action.LEFT,
-            env.Action.RIGHT,
-            env.Action.STAY,
-            env.Action.PLANT,
-            env.Action.CHARGE,
-        ]
+    def __init__(self, agent_id: int, max_number_of_seeds: int, max_battery_available: int, map: Map) -> None:
+        super().__init__(agent_id, max_number_of_seeds, max_battery_available, map)
 
-    def act(self) -> env.Action:
-        return self._rng.choice(self._actions)
+    def see(self, map: Map) -> None:
+        """Observes the current state of the environment through its sensors."""
+        self.last_observation = RandomObservation()
 
+    def choose_action(self):
+        """Chooses action randomly."""
+        action = self.rng.choice(self.drone.actions)
+        return action
 
-class EnergyBased(Base, ABC):
-    """Utility class with path based functions."""
-
-    def has_enough_energy(self, agent_drone: drone.Drone, target: grid.Position):
-        """
-        Checks that there is enough energy to go to nearest plantable square and head back to charging station,
-        considering the drone's current position, the target and the target's distance to the charging station.
-        
-        """
-        pass
-        '''
-        return len(bfs_with_positions(agent_drone.loc, target)) \
-               + len(bfs_with_positions(target, agent_drone.map.find_charging_station())) > agent_drone.batery_available
-        '''
+    def reset(self):
+        """Resets the drone associated with the agent."""
+        self.drone = self.create_drone(self._agent_id, self.drone.max_number_of_seeds, self.drone.max_battery_available,
+                                       self.drone.map)
 
 
-class PathBased(EnergyBased, ABC):
-    """Utility class with path based functions."""
+def has_enough_energy(drone, target):
+    """
+    Checks that there is enough energy to go to nearest plantable square and head back to charging station,
+    considering the drone's current position, the target and the target's distance to the charging station.
 
-    def plant_nearest_square(self, agent_drone: drone.Drone) -> env.Action:
-        plantable_pos = agent_drone.map.plantable_squares()
-        print('plantable_pos', plantable_pos)
-        if len(plantable_pos) == 0:
-            return env.Action.STAY
+    """
+    target_cost = len(breadth_first_search(drone.get_loc(), target))
+    battery_cost = target_cost + len(breadth_first_search(target, drone.get_charging_station()))
 
-        shortest_paths = [
-            self.bfs_with_positions(agent_drone.loc, p)
-            for p in plantable_pos
-        ]
-        path_idx = np.argmin([len(p) for p in shortest_paths])
+    return drone.get_battery_available() > battery_cost
 
-        if self.has_enough_energy(agent_drone, plantable_pos[path_idx]):
-            action = self.move_in_path_and_act(shortest_paths[path_idx], env.Action.PLANT)
-            print('ACTION', action)
-            return action
-        else:
-            return self.go_to_charging_station(agent_drone)
 
-    def go_to_charging_station(self, agent_drone: drone.Drone) -> env.Action:
+def breadth_first_search(source: Position, target: Position) -> list[Position]:
+    """Computes the list of positions in the path from source to target.
+    It uses a BFS so the path is the shortest path."""
 
-        charging_station_pos = agent_drone.map.find_charging_station()
-        shortest_path = self.bfs_with_positions(agent_drone.loc, charging_station_pos)
-        return self.move_in_path_and_act(shortest_path, env.Action.CHARGE)
+    queue = [(source, (source,))]
 
-    @staticmethod
-    def move_in_path_and_act(path: List[grid.Position], last_action: env.Action) -> env.Action:
-        if len(path) == 1:
-            print('path 1')
-            return last_action
+    visited = set()
+    while len(queue) > 0:
+        curr, curr_path = queue.pop(0)
+
+        if curr == target:
+            return list(curr_path)
+
+        for neighbour in curr.adj:
+            if neighbour not in visited:
+                neighbour_path = curr_path + (neighbour,)
+                queue.append((neighbour, neighbour_path))
+                visited.add(neighbour)
+
+
+def move_in_path_and_act(agent_drone, path: list[Position], goal):
+    """Returns the action to take to move in the path."""
+    from drone import Action, Goal
+
+    if len(path) == 1:
+        curr_pos = agent_drone.loc
+        next_pos = path[0]
+        if curr_pos == next_pos:
+            if goal == Goal.PLANT:
+                return Action.PLANT
+            if goal == Goal.CHARGE:
+                return Action.CHARGE
+    else:
         curr_pos = path[0]
         next_pos = path[1]
-        print('not path 1')
-        if next_pos == curr_pos.up:
-            return env.Action.UP
-        elif next_pos == curr_pos.down:
-            return env.Action.DOWN
-        elif next_pos == curr_pos.left:
-            return env.Action.LEFT
-        elif next_pos == curr_pos.right:
-            return env.Action.RIGHT
+
+    if next_pos == curr_pos.up:
+        return Action.UP
+    elif next_pos == curr_pos.down:
+        return Action.DOWN
+    elif next_pos == curr_pos.left:
+        return Action.LEFT
+    elif next_pos == curr_pos.right:
+        return Action.RIGHT
+    elif next_pos == curr_pos.up_right:
+        return Action.UP_RIGHT
+    elif next_pos == curr_pos.up_left:
+        return Action.UP_LEFT
+    elif next_pos == curr_pos.down_right:
+        return Action.DOWN_RIGHT
+    elif next_pos == curr_pos.down_left:
+        return Action.DOWN_LEFT
+
+
+def go_to_charging_station(drone):
+    """Returns the action to take to go to the charging station."""
+    from drone import Goal
+
+    shortest_path = breadth_first_search(drone.get_loc(), drone.get_charging_station())
+    action = move_in_path_and_act(drone, shortest_path, Goal.CHARGE)
+
+    return action
+
+
+def plant_nearest_square(drone):
+    """Returns the action to take to plant the nearest square."""
+    from drone import Action, Goal
+
+    plantable_squares = drone.get_map().plantable_squares()
+    unvisited_cells = drone.get_map().get_unknown_cells()
+
+    if len(plantable_squares) == 0:
+        # Sample the unvisited cells for performance reasons.
+        size = int(0.1 * len(unvisited_cells))
+        if size > 0 and len(unvisited_cells) > 10:
+            unvisited_cells = random.sample(unvisited_cells, size)
+        shortest_paths = [breadth_first_search(drone.get_loc(), p) for p in unvisited_cells]
+        shortest_path_id = np.argmin([len(p) for p in shortest_paths])
+        go_plant_or_move_flag = has_enough_energy(drone, unvisited_cells[shortest_path_id])
+    else:
+        shortest_paths = [breadth_first_search(drone.get_loc(), p) for p in plantable_squares]
+        shortest_path_id = np.argmin([len(p) for p in shortest_paths])
+        go_plant_or_move_flag = has_enough_energy(drone, plantable_squares[shortest_path_id])
+
+    if go_plant_or_move_flag:
+        if len(shortest_paths[shortest_path_id]) == 1 and drone.get_loc() == shortest_paths[shortest_path_id][0]:
+            return Action.PLANT
         else:
-            raise ValueError(
-                f"Unknown adj direction: (curr_pos: {curr_pos}, next_pos: {next_pos})"
-            )
-
-    @staticmethod
-    def bfs_with_positions(source: grid.Position, target: grid.Position) -> List[grid.Position]:
-        """Computes the list of positions in the path from source to target.
-        
-        It uses a BFS so the path is the shortest path."""
-
-        # The queue stores tuple with the nodes to explore
-        # and the path taken to the node.
-        queue = [(source, (source,))]
-        # Visited stores already explored positions to avoid
-        # loops.
-        visited = set()
-        while len(queue) > 0:
-            curr, curr_path = queue.pop(0)
-            if curr in target.adj:
-                return list(curr_path)
-            for neighbour in curr.adj:
-                if neighbour not in visited:
-                    neighbour_path = curr_path + (neighbour,)
-                    queue.append((neighbour, neighbour_path))
-                    visited.add(neighbour)
-        raise ValueError("No path found")
+            action = move_in_path_and_act(drone, shortest_paths[shortest_path_id], Goal.PLANT)
+            return action
+    else:
+        return go_to_charging_station(drone)
 
 
-'''
-class PathPlanner(PathBased):
+class GreedyAgent(Agent):
     """Agent that plans its path using a BFS."""
 
-    def __init__(self, agent_id: int = 0) -> None:
-        super().__init__()
-        self._agent_id = agent_id
+    def __init__(self, agent_id: int, max_number_of_seeds: int, max_battery_available: int, map: Map) -> None:
+        super().__init__(agent_id, max_number_of_seeds, max_battery_available, map)
 
-    def act(self) -> env.Action:
-        agent_drone = self._last_observation.drones[self._agent_id]
+    def see(self, map: Map) -> None:
+        self.last_observation = GreedyObservation(map, self.drone)
+        self.drone.update_map_greedy(self.last_observation)
+        self.drone.get_map().update_planted_squares()
 
-        # Conditions in which the drone needs to go to charging station ???
-        # deviamos adicionar uma função reutilizavel para isto 
-        if agent_drone.nr_seeds.count(0) == 3 \
-                or len(self.bfs_with_positions(agent_drone.loc,
-                                               agent_drone.map.find_charging_station())) \
-                == agent_drone.batery_available:
-            print("go to charging station")
-            return self.go_to_charging_station(agent_drone)
+    def choose_action(self):
+        from drone import Action
+
+        location = self.drone.get_loc()
+        charging_station = self.drone.get_charging_station()
+
+        # No seeds
+        if self.drone.get_nr_seeds().count(0) >= 1:
+            return go_to_charging_station(self.drone)
+
+        path_size_to_cs = len(breadth_first_search(location, charging_station))
+
+        if path_size_to_cs == 0:
+            return Action.CHARGE
+
+        if path_size_to_cs + 1 == self.drone.get_battery_available():
+            return go_to_charging_station(self.drone)
         else:
-            print("go plant")
-            self.plant_nearest_square(agent_drone)
-            p = agent_drone.loc
-            s = Map.choose_seed(agent_drone.loc)
-            print("pos", p)
-            print("cell type before", self.map.grid[p.y, p.x])
-            Map.change_cell_type(p, s)
-            print("cell type after:", self.map.grid[p.y, p.x])
-            print('change cell type to', s)
-            env.planted_squares.append(tuple([p, s]))
+            return plant_nearest_square(self.drone)
+
+    def reset(self):
+        self.drone = self.create_drone(self._agent_id, self.drone.max_number_of_seeds, self.drone.max_battery_available,
+                                       self.drone.map)
 
 
-'''
-'''
-class QuadrantsSocialConventions(PathBased):
-    """Agent that uses social conventions to attribute passengers.
-    
-    Each agent picks up from a quadrant, as follows:
-    |-------------------|-------------------|
-    | agent (0, 4, ...) | agent (1, 5, ...) |
-    |-------------------|-------------------|
-    | agent (2, 6, ...) | agent (3, 7, ...) |
-    |-------------------|-------------------|
-    """
+class CommunicativeAgent(Agent):
+    """Agent that communicates with other agents."""
 
-    def __init__(self, agent_id: int = 0) -> None:
-        super().__init__()
-        self._agent_id = agent_id
-        self._quadrant = (agent_id % 4) + 1
+    def __init__(self, agent_id: int, max_number_of_seeds: int, max_battery_available: int, map: Map) -> None:
+        super().__init__(agent_id, max_number_of_seeds, max_battery_available, map)
+        self.communication = None
+        self.energy_level_and_seed_status = {}
+        self.charging_status = {}
+        self.drone_planting = {}
+        self.drone_location = {}
+        self.strategies = {strategy.__name__: strategy for strategy in
+                           [CooperativeCharging]}
 
-    def act(self) -> env.Action:
-        map = self._last_observation.map
-        agent_taxi = self._last_observation.taxis[self._agent_id]
-        passengers = self._last_observation.passengers
-        
-        if agent_taxi.has_passenger is None:
-            check_quadrant_mapper = {
-                1: self._is_first_quadrant,
-                2: self._is_second_quadrant,
-                3: self._is_third_quadrant,
-                4: self._is_fourth_quadrant,
-            }
-            check_quadrant_fn = check_quadrant_mapper[self._quadrant]
-            passengers = [
-                p for p in passengers
-                if check_quadrant_fn(map, p.pick_up) and p.in_trip == entity.TripState.WAITING
-            ]
-            return self._plant_nearest_square(map, agent_taxi, passengers)
-        return self._dropoff_current_passenger(map, agent_taxi)
+    def get_energy_level_and_seed_status(self):
+        """Returns the energy level and seed status of all the agents."""
+        return self.energy_level_and_seed_status
 
-    def _is_first_quadrant(self, map: grid.Map, pos: grid.Position):
-        return pos.x < map.width // 2 and pos.y < map.height // 2
+    def get_charging_status(self):
+        """Returns the charging status of all the agents."""
+        return self.charging_status
 
-    def _is_second_quadrant(self, map: grid.Map, pos: grid.Position):
-        return pos.x >= map.width // 2 and pos.y < map.height // 2
+    def see(self, map: Map) -> None:
+        self.last_observation = CommunicativeObservation(map, self.drone)
+        self.drone.update_map_coomunicative(self.last_observation)
+        self.drone.get_map().update_planted_squares()
+        self.send_sensors_messages(self.last_observation)
 
-    def _is_third_quadrant(self, map: grid.Map, pos: grid.Position):
-        return pos.x < map.width // 2 and pos.y >= map.height // 2
+    def receive_message(self, message):
+        """Receives a message."""
+        self.handle_new_message(message)
 
-    def _is_fourth_quadrant(self, map: grid.Map, pos: grid.Position):
-        return pos.x >= map.width // 2 and pos.y >= map.height // 2
+    def handle_new_message(self, message):
+        """Handles a new message."""
+        if isinstance(message, MapUpdateMessage):
+            self.update_map(message)
+        elif isinstance(message, EnergyAndSeedLevelsStatusMessage):
+            self.update_energy_and_seed_level_status(message)
+        elif isinstance(message, DroneLocationMessage):
+            self.update_drone_location(message)
+        elif isinstance(message, ChargingStatusMessage):
+            self.update_charging_status(message)
+        elif isinstance(message, DronePlantingMessage):
+            self.update_drone_planting(message)
+        else:
+            raise Exception("Unknown message type.")
 
+    def update_map(self, message: MapUpdateMessage) -> None:
+        """Updates drone's map."""
+        payload = message.get_payload()
+        adj_positions = payload.get_adj_positions()
+        adj_cell_types = payload.get_adj_cell_types()
+        location = payload.get_current_location()
+        location_cell_type = payload.get_current_cell_type()
 
-class IDsSocialConventions(PathBased):
-    """Agent that uses social conventions to attribute passengers by using their ID.
-    
-    Each agent picks up a passenger as follows:
-    
-    """
+        for i in range(len(adj_positions)):
+            self.drone.get_map().update_position(adj_positions[i], adj_cell_types[i])
+        self.drone.get_map().update_position(location, location_cell_type)
+        self.drone.get_map().update_planted_squares()
 
-    def __init__(self, agent_id: int = 0) -> None:
-        super().__init__()
-        self._agent_id = agent_id
+    def update_energy_and_seed_level_status(self, message: EnergyAndSeedLevelsStatusMessage) -> None:
+        """Updates drone's energy and seed level."""
 
-    def act(self) -> env.Action:
-        map = self._last_observation.map
-        agent_taxi = self._last_observation.taxis[self._agent_id]
-        nr_agents = len(self._last_observation.taxis)
-        passengers = self._last_observation.passengers
-        
-        if agent_taxi.has_passenger is None:
-            
-            passengers = [
-                p for p in passengers
-                if (p.id % nr_agents) == self._agent_id and p.in_trip == entity.TripState.WAITING
-            ]
-            return self._plant_nearest_square(map, agent_taxi, passengers)
-        return self._dropoff_current_passenger(map, agent_taxi)
+        sender_id = message.get_sender()
+        payload = message.get_payload()
+        battery_available = payload.get_energy_level()
+        nr_seeds = payload.get_seed_level()
 
+        if sender_id in self.energy_level_and_seed_status:
+            self.energy_level_and_seed_status[sender_id]['battery_available'] = battery_available
+            self.energy_level_and_seed_status[sender_id]['nr_seeds'] = nr_seeds
+        else:
+            self.energy_level_and_seed_status[sender_id] = {'battery_available': battery_available,
+                                                            'nr_seeds': nr_seeds}
 
-class Roles(PathBased):
-    """Agent that attributes passengers based on distance to pick up location."""
+    def update_charging_status(self, message: ChargingStatusMessage) -> None:
+        """Updates drone's charging status."""
+        sender_id = message.get_sender()
+        payload = message.get_payload()
+        timestep = payload.get_timestep()
+        self.charging_status[sender_id] = timestep
 
-    def __init__(self, agent_id: int = 0) -> None:
-        super().__init__()
-        self._agent_id = agent_id
+    def update_drone_planting(self, message: DronePlantingMessage) -> None:
+        """Updates drone's planting status."""
+        sender_id = message.get_sender()
+        payload = message.get_payload()
+        planting_location = payload.get_planting_location()
+        self.drone_planting[sender_id] = planting_location
 
-    def act(self) -> env.Action:
-        map = self._last_observation.map
-        taxis = self._last_observation.taxis
-        passengers = self._last_observation.passengers
+    def update_drone_location(self, message: DroneLocationMessage) -> None:
+        """Updates drone's location."""
+        sender_id = message.get_sender()
+        payload = message.get_payload()
+        drone_location = payload.get_drone_location()
+        self.drone_location[sender_id] = drone_location
 
-        roles = []
+    def choose_action(self):
 
-        # First assign passengers already in trip to their taxis.
-        for t in taxis:
-            if t.has_passenger is not None:
-                roles.append((t, t.has_passenger))
-            
-        possible_passengers = [p for p in passengers if p.in_trip == entity.TripState.WAITING]
-        possible_taxis = [t for t in taxis if t.has_passenger is None]
-        assigned_taxis = []
-        for p in possible_passengers:
-            shortest_paths = [
-                self._bfs_with_positions(map, t.loc, p.pick_up)
-                for t in possible_taxis
-            ]
-            taxi = None
-            min_dist = np.inf
-            for t, path in zip(possible_taxis, shortest_paths):
-                if len(path) < min_dist and t not in assigned_taxis:
-                    min_dist = len(path)
-                    taxi = t
-            assigned_taxis.append(taxi)
-            roles.append((taxi, p))
+        from drone import Action
 
-        agent_taxi = taxis[self._agent_id]
-        for t, p in roles:
-            if t == agent_taxi:
-                if agent_taxi.has_passenger:
-                    return self._dropoff_current_passenger(map, agent_taxi)
-                shortest_path = self._bfs_with_positions(map, agent_taxi.loc, p.pick_up)
-                return self._move_in_path_and_act(shortest_path, env.Action.PICK_UP)
-        return env.Action.STAY    
-'''
+        location = self.drone.get_loc()
+        charging_station = self.drone.get_charging_station()
 
+        # No seeds
+        if self.drone.get_nr_seeds().count(0) >= 1:
+            return go_to_charging_station(self.drone)
 
-class Debug(Base):
-    """Debug agent that prompts the user for the next action."""
+        path_size_to_cs = len(breadth_first_search(location, charging_station))
 
-    def __init__(self, agent_id: int = 0) -> None:
-        self._prompt = f"Choose agent {agent_id} action [W(Up),S(Down),A(Left),D(Right),Z(Stay),X(Plant),C(Charge)]?"
+        if path_size_to_cs == 0:
+            return Action.CHARGE
 
-    def act(self) -> env.Action:
-        action = None
-        while action is None:
-            # Lower to ignore uppercase letters
-            action_input = input(self._prompt).lower()
-            if action_input in ("w", "up"):
-                action = env.Action.UP
-            elif action_input in ("s", "down"):
-                action = env.Action.DOWN
-            elif action_input in ("a", "left"):
-                action = env.Action.LEFT
-            elif action_input in ("d", "right"):
-                action = env.Action.RIGHT
-            elif action_input in ("z", "stay"):
-                action = env.Action.STAY
-            elif action_input in ("x", "plant"):
-                action = env.Action.PLANT
-            elif action_input in ("c", "charge"):
-                action = env.Action.CHARGE
+        if int(path_size_to_cs * 1.05) == self.drone.get_battery_available():
+            return go_to_charging_station(self.drone)
+        else:
+            return plant_nearest_square(self.drone)
 
-        return action
+    def reset(self) -> None:
+        self.drone = self.create_drone(self._agent_id, self.drone.max_number_of_seeds, self.drone.max_battery_available,
+                                       self.drone.map)
+        self.communication = None
+
+    def set_agents(self, agents: list[Agent]) -> None:
+        """Sets the agents of the agent."""
+        self.communication = Communication(self._agent_id, agents)
+
+    def get_communication(self):
+        """Returns the communication of the agent."""
+        return self.communication
+
+    def get_cooperative_charging_strategy(self):
+        """Returns the cooperative charging strategy of the agent."""
+        return self.strategies['CooperativeCharging']
+
+    def send_sensors_messages(self, observation: CommunicativeObservation) -> None:
+        """Sends the sensors status to the other agents."""
+        adj_locations = observation.get_adj_locations()
+        adj_cell_types = observation.get_adj_cell_types()
+        current_loc = observation.get_current_loc()
+        current_cell_type = observation.get_current_cell_type()
+        payload = MapUpdatePayload(adj_locations, adj_cell_types, current_loc, current_cell_type)
+        self.get_communication().send_map_update(payload)
+
+        energy = observation.get_current_energy()
+        seeds = observation.get_current_seeds()
+        payload = EnergyAndSeedLevelsStatusPayload(energy, seeds)
+        self.get_communication().send_energy_and_seed_levels_status(payload)
+
+        location = observation.get_loc()
+        payload = DroneLocationPayload(location)
+        self.get_communication().send_drone_location(payload)
+
+    def notify_intention_to_charge(self, timestep) -> None:
+        """Notifies the other agents that the drone is going to charge."""
+        payload = ChargingStatusPayload(timestep)
+        self.get_communication().send_charging_status(payload)
+

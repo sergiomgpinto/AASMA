@@ -1,129 +1,158 @@
-import agent
-import env
-import grid
-import default
-import graphical
+import time
 import numpy as np
 import pygame
 import yaml
-import tqdm
-from typing import List
+from typing import Any
+from drone import Drone, Action
+from env import Environment
+from agent import Agent, RandomAgent, GreedyAgent, CommunicativeAgent
+from graphical import EnvironmentPrinter
+from metrics import get_percentage_of_planted_squares, get_avg_distance_needed_to_identify_fertile_land, \
+    get_avg_energy_used_per_planted_tree
+from grid import Map
+from default import MAP
 
 
-def run_graphical(local_map: grid.Map, agents: List[agent.Base], log_level: str):
-    with graphical.EnvironmentPrinter(local_map.grid) as printer:
-        environment = env.Environment(
-            env_map=local_map, planted_squares=[], init_drones=len(agents), printer=printer, log_level=log_level,
-        )
-        # Initial render to see initial environment.
-        observations = environment.reset()
-        environment.render()
+def run_graphical(map: Map, agents: list[Agent], drones: list[Drone], timestep: any) -> tuple[int, bool, bool | Any, float | Any, Any, Any]:
+    """ Runs the simulation in a graphical environment."""
+    with EnvironmentPrinter(map.get_initial_grid()) as printer:
+        # Environment variable
+        environment = Environment(printer, map)
+
+        # Shows the environment in the window.
+        environment.render(drones)
+
         running = True
+        terminal = False
+        all_drones_dead = False
         n_steps = 0
+
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
 
-            for observations, ag in zip(observations, agents):
-                ag.see(observations)
+            # Agents observing the environment.
+            for agent in agents:
+                agent.see(map)
 
-            actions = [a.act() for a in agents]
-            print("ACTIONS DOS 4 DRONES", actions)
-            observations, terminal = environment.step(*actions)
+            # Agents choose actions.
+            actions = [agent.choose_action() for agent in agents]
+
+            # Notifies the others agents that he is going to charge.
+            for agent, action in zip(agents, actions):
+                if isinstance(agent, CommunicativeAgent) and action == Action.CHARGE:
+                    agent.notify_intention_to_charge(environment.get_timestep())
+
+            terminal = environment.step(actions, agents)
+
+            # Drones are dead if they reach 0 energy before reaching a charging station.
+            all_drones_dead = all([drone.is_drone_dead() for drone in drones])
+
             n_steps += 1
-            environment.render()
+            environment.render(drones)
+
+            # Terminal conditions
             if terminal:
                 break
+            if all_drones_dead:
+                break
 
-            # time.sleep(1)
-    # TODO: util para as metricas 
-    # squares_planted = len(environment.final_passengers) - len(environment.passengers)
-    return environment.drones, n_steps  # , environment.final_passengers, squares_planted, n_steps
+            time.sleep(timestep)
 
+    # Metrics
+    percentage_of_planted_squares = get_percentage_of_planted_squares(map)
+    avg_distance_needed_to_identify_fertile_land = get_avg_distance_needed_to_identify_fertile_land(agents)
+    avg_energy_used_per_planted_tree = get_avg_energy_used_per_planted_tree(agents)
 
-def run_not_graphical(local_map: grid.Map, agents: List[agent.Base], log_level: str):
-    environment = env.Environment(
-        env_map=local_map, planted_squares=[], init_drones=len(agents), log_level=log_level)
-
-    observations = environment.reset()
-    running = True
-    n_steps = 0
-    while running:
-
-        for observations, ag in zip(observations, agents):
-            ag.see(observations)
-
-        actions = [a.act() for a in agents]
-        observations, terminal = environment.step(*actions)
-        n_steps += 1
-        if terminal:
-            break
-        # time.sleep(1)
-    # TODO: metricas
-    # n_delivered = len(environment.map.) - len(environment.passengers)
-    return environment.drones, n_steps  # ,n_delivered
+    return n_steps, terminal, all_drones_dead, percentage_of_planted_squares, avg_distance_needed_to_identify_fertile_land, avg_energy_used_per_planted_tree
 
 
 def main():
     with open("./config.yml", "r") as fp:
         data = yaml.safe_load(fp)
 
-    # num_charging_stations = data[data["agent_type"]]["nr_charging_stations"]
+    # Parameters from config file
+    max_number_of_seeds = data["max_number_of_seeds"]
+    max_battery_capacity = data["max_battery_capacity"]
     num_agents = data[data["agent_type"]]["nr_agents"]
-
-    if data["agent_type"] == "Random":
-        agents = [agent.Random() for _ in range(num_agents)]
-    elif data["agent_type"] == "PathPlanner":
-        agents = [agent.PathPlanner(agent_id=i) for i in range(num_agents)]
-    elif data["agent_type"] == "Debug":
-        agents = [agent.Debug(agent_id=i) for i in range(num_agents)]
-    else:
-        raise ValueError(f"Unknown agent type: {data['agent_type']}")
-    '''
-    elif data["agent_type"] == "QuadrantsSocialConventions":
-        agents = [agent.QuadrantsSocialConventions(agent_id=i) for i in range(num_agents)]
-    elif data["agent_type"] == "IDsSocialConventions":
-        agents = [agent.IDsSocialConventions(agent_id=i) for i in range(num_agents)]
-    elif data["agent_type"] == "Roles":
-        agents = [agent.Roles(agent_id=i) for i in range(num_agents)]
-    '''
-
-    global_map = grid.Map(default.MAP)
-
-    run_with_graphics = data["graphical"]
-    log_level = data["log_level"]
     n_runs = data["n_runs"]
 
-    drones_distances = []
+    if max_number_of_seeds < 5:
+        raise ValueError("Max number of seeds inserted in the config file must be greater than 5 inclusive.")
+    if max_battery_capacity < 2 * data["map_size"]:
+        raise ValueError("Max battery capacity inserted in the config file must be greater than 2 * map_size.")
+    if n_runs <= 0:
+        raise ValueError("Number of runs inserted in the config file must be greater than 0.")
+    timestep = data["timestep"]
+    if timestep < 0:
+        raise ValueError("Timestep inserted in the config file must be greater than 0 inclusive.")
+
+    # Variables to store metrics
     all_n_steps = []
+    number_of_dead_drones = []
+    percentage_of_planted_trees = []
+    avg_energy_used = []
+    avg_distance_needed_to_identify_fertile_land = []
+    avg_drone_distance = []
 
-    if run_with_graphics:
-        iterable = range(n_runs)
+    # Environment map
+    map = Map(MAP)
+
+    # Agents
+    drones = []
+    if data["agent_type"] == "RandomAgent":
+        agents = [RandomAgent(i, max_number_of_seeds, max_battery_capacity, map) for i in range(num_agents)]
+    elif data["agent_type"] == "GreedyAgent":
+        agents = [GreedyAgent(i, max_number_of_seeds, max_battery_capacity, map) for i in range(num_agents)]
+    elif data["agent_type"] == "CommunicativeAgent":
+        agents = [CommunicativeAgent(i, max_number_of_seeds, max_battery_capacity, map) for i in range(num_agents)]
     else:
-        iterable = tqdm.tqdm(range(n_runs))
+        raise Exception("Agent type not recognized")
 
-    for _ in iterable:
-        if run_with_graphics:
-            drones, n_steps = run_graphical(global_map, agents, log_level)
-            # drones, n_delivered, n_steps = run_graphical(map, agents, log_level)
-        else:
-            # taxis, passengers, n_delivered, n_steps = run_not_graphical(map, agents, log_level)
-            drones, n_steps = run_not_graphical(global_map, agents, log_level)
+    # Main loop
+    for _ in range(n_runs):
 
-        # media da distancia percorrida pelos drones
-        avg_drone_distance = np.mean([drone.total_distance for drone in drones])
+        # Create drones
+        for agent in agents:
+            if isinstance(agent, CommunicativeAgent):
+                agent.set_agents(agents)
+            drones.append(agent.get_drone())
 
-        drones_distances.append(avg_drone_distance)
+        # Run simulation
+        n_steps, terminal, all_drones_dead, percentage_of_planted_squares, avg_distance_needed_to_fertile_land, avg_energy_used_per_planted_tree = \
+            run_graphical(map, agents, drones, timestep)
+
+        # Metrics
+        avg_drone_distance.append(np.mean([drone.total_distance for drone in drones]))
         all_n_steps.append(n_steps)
+        number_of_dead_drones.append(len([drone for drone in drones if drone.is_drone_dead]))
+        percentage_of_planted_trees.append(percentage_of_planted_squares)
+        avg_distance_needed_to_identify_fertile_land.append(avg_distance_needed_to_fertile_land)
+        avg_energy_used.append(avg_energy_used_per_planted_tree)
 
-    # Stores each run in the following format
-    # n_agents, n_passengers, avg_taxi_distance, avg_pick_up_time, avg_drop_off_time, avg_n_steps
+        # Reset environment and agents for next run
+        for agent in agents:
+            agent.reset()
+        map.reset()
+        drones = []
+
+        # Terminal conditions for a run
+        if all_drones_dead:
+            continue
+        if terminal:
+            break
+
+    # Write metrics to file
     with open(f"metrics-{data['agent_type']}-agents-{num_agents}.csv", "w") as metrics:
-        metrics.write("drone_distance,n_steps\n")
-        for d, n in zip(drones_distances, all_n_steps):
-            metrics.write(f"{d},{n}\n")
+        metrics.write(
+            "Average energy used per planted tree, Average distance to identify fertile land, Percentage of planted squares, Number of drones that died, Drones average distance traveled, Number of steps to complete the map\n")
+        for a, b, c, d, e, f in zip(avg_energy_used, avg_distance_needed_to_identify_fertile_land,
+                                    percentage_of_planted_trees,
+                                    number_of_dead_drones, avg_drone_distance, all_n_steps):
+            metrics.write(f"{a}, {b}, {c}, {d}, {e}, {f}\n")
 
 
+# Run main
 if __name__ == "__main__":
     main()

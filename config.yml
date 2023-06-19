@@ -1,0 +1,40 @@
+%YAML 1.2
+---
+
+# Parameters for the simulation
+
+# Number of runs for each simulation
+n_runs: 100
+
+# Type of agents to be used
+agent_type: CommunicativeAgent #GreedyAgent #RandomAgent #GreedyAgent #RandomAgent #GreedyAgent #GreedyAgent #CommunicativeAgent
+
+# Window size for the graphical interface
+map_size: 15 #Maximum is 26, minimum is 7, recommended is 26
+
+# Max and starting number of seeds for each tree for the drones
+max_number_of_seeds: 5 # Recommended is 5
+
+# Max and starting battery capacity for the drones
+max_battery_capacity: 35 # Minimum is 1.5 * map size, recommended is 2 * map size
+
+# Number of charging stations in the map
+nr_charging_stations: 1
+
+# Ratio of fertile land
+fertile_land_ratio: 0.7 # Minimum is 0.5, maximum is 0.85, recommended is 0.70
+
+# Number of agents for the random type
+RandomAgent:
+  nr_agents: 6 # non negative value
+
+# Number of agents for the greedy type
+GreedyAgent:
+  nr_agents: 5 # non negative value
+
+# Number of agents for the communicative type
+CommunicativeAgent:
+  nr_agents: 2 # non negative value
+
+# Configures the time for each time step in seconds
+timestep: 0 # non negative value

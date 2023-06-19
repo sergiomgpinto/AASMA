@@ -1,9 +1,7 @@
 ma-gym
-matplotlib
-scipy
 yaml=1.2.2
 numpy~=1.24.3
 pygame~=2.4.0
-tqdm~=4.65.0
 default~=0.1.2
 PyYAML~=6.0
+scipy=1.10.1
